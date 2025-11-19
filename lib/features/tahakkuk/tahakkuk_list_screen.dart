@@ -1,22 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../db/app_database.dart';
 import '../../providers.dart';
 import '../../services/printer_service.dart';
 import 'package:intl/intl.dart';
 
 class TahakkukListScreen extends ConsumerStatefulWidget {
-  final int? donemId;
-  const TahakkukListScreen({super.key, this.donemId});
+  const TahakkukListScreen({super.key});
   @override
   ConsumerState<TahakkukListScreen> createState() => _TahakkukListScreenState();
 }
 
 class _TahakkukListScreenState extends ConsumerState<TahakkukListScreen> {
-  List<TahakkuklarData> _tahakkuklar = [];
+  List<TahakkuklarData> _allTahakkuklar = [];
+  List<TahakkuklarData> _filteredTahakkuklar = [];
   Map<int, AbonelerData> _aboneler = {};
   Map<int, DonemlerData> _donemler = {};
   bool _loading = true;
+  String _searchQuery = '';
+  int? _selectedYear;
+  int? _selectedDonemId;
+  List<DonemlerData> _allDonemler = [];
+  Set<int> _availableYears = {};
 
   @override
   void initState() {
@@ -26,103 +32,80 @@ class _TahakkukListScreenState extends ConsumerState<TahakkukListScreen> {
 
   Future<void> _loadData() async {
     final db = ref.read(dbProvider);
-    final tahakkuklar = widget.donemId != null
-        ? await db.getTahakkuklarByDonem(widget.donemId!)
-        : await (db.select(db.tahakkuklar)..limit(100)).get();
-
+    final tahakkuklar = await db.getAllTahakkuklar();
     final aboneler = await db.getAboneler();
     final donemler = await db.getDonemler();
 
+    // Extract years from donemler
+    final years = <int>{};
+    for (var d in donemler) {
+      try {
+        final date = DateTime.parse(d.baslangicTarihi);
+        years.add(date.year);
+      } catch (e) {
+        debugPrint('Error parsing date: $e');
+      }
+    }
+
     if (mounted) {
       setState(() {
-        _tahakkuklar = tahakkuklar;
+        _allTahakkuklar = tahakkuklar;
         _aboneler = {for (var a in aboneler) a.id: a};
         _donemler = {for (var d in donemler) d.id: d};
+        _allDonemler = donemler;
+        _availableYears = years;
+
+        // Default: show current year
+        if (_availableYears.isNotEmpty) {
+          _selectedYear = DateTime.now().year;
+          if (_availableYears.contains(_selectedYear)) {
+            // Filter donemler by year
+            _filterByYearAndDonem();
+          }
+        }
+
         _loading = false;
       });
     }
   }
 
-  Future<void> _showTahsilatDialog(TahakkuklarData tahakkuk) async {
-    final db = ref.read(dbProvider);
-    final kalan = await db.getKalanBakiye(tahakkuk.id);
+  void _filterByYearAndDonem() {
+    var filtered = _allTahakkuklar;
 
-    if (!mounted) return;
-
-    final tutarCtrl = TextEditingController(text: kalan.toStringAsFixed(2));
-    final aciklamaCtrl = TextEditingController();
-    final messenger = ScaffoldMessenger.of(context);
-
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Tahsilat Ekle'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Kalan Bakiye: ${kalan.toStringAsFixed(2)} TL',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: tutarCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Tahsilat Tutarı',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: aciklamaCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Açıklama (opsiyonel)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c),
-            child: const Text('İptal'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final tutar = double.tryParse(tutarCtrl.text) ?? 0;
-              if (tutar <= 0) {
-                ScaffoldMessenger.of(c).showSnackBar(
-                  const SnackBar(content: Text('Geçerli tutar giriniz')),
-                );
-                return;
-              }
-              await db.createTahsilat(
-                tahakkukId: tahakkuk.id,
-                tarih: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                tutar: tutar,
-                odemeTipi: 'Nakit',
-                aciklama: aciklamaCtrl.text.trim().isEmpty
-                    ? null
-                    : aciklamaCtrl.text.trim(),
-              );
-              // ignore: use_build_context_synchronously
-              Navigator.pop(c, true);
-            },
-            child: const Text('Kaydet'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      await _loadData();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Tahsilat kaydedildi')),
-      );
+    // Filter by year
+    if (_selectedYear != null) {
+      filtered = filtered.where((t) {
+        final donem = _donemler[t.donemId];
+        if (donem == null) return false;
+        try {
+          final date = DateTime.parse(donem.baslangicTarihi);
+          return date.year == _selectedYear;
+        } catch (e) {
+          return false;
+        }
+      }).toList();
     }
+
+    // Filter by donem
+    if (_selectedDonemId != null) {
+      filtered = filtered.where((t) => t.donemId == _selectedDonemId).toList();
+    }
+
+    // Filter by search
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((t) {
+        final abone = _aboneler[t.aboneId];
+        if (abone == null) return false;
+        final fullName = '${abone.ad} ${abone.soyad ?? ''}'.toLowerCase();
+        final aboneNo = abone.aboneNo.toLowerCase();
+        return fullName.contains(_searchQuery.toLowerCase()) ||
+            aboneNo.contains(_searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    setState(() {
+      _filteredTahakkuklar = filtered;
+    });
   }
 
   Future<void> _printMakbuz(TahakkuklarData tahakkuk) async {
@@ -177,41 +160,215 @@ class _TahakkukListScreenState extends ConsumerState<TahakkukListScreen> {
     }
   }
 
+  Future<void> _shareBorcMesaji(
+    TahakkuklarData tahakkuk,
+    AbonelerData? abone,
+    double kalan,
+  ) async {
+    if (abone == null) return;
+
+    final db = ref.read(dbProvider);
+    final ayarlar = await db.getSettings();
+    final muhtarAdi = ayarlar?.muhtarAdi ?? '';
+    final muhtarSoyadi = ayarlar?.muhtarSoyadi ?? '';
+    final donem = _donemler[tahakkuk.donemId];
+
+    final mesaj =
+        '''
+Sayın ${abone.ad}${abone.soyad != null ? ' ${abone.soyad}' : ''},
+
+${donem?.ad ?? 'Mevcut dönem'} için köy muhtarlığımıza ${kalan.toStringAsFixed(2)} ₺ borcunuz bulunmaktadır.
+
+Borcunuzun en kısa sürede ödenmesini rica ederiz.
+
+Saygılarımızla,
+$muhtarAdi $muhtarSoyadi
+Muhtar
+''';
+
+    await Share.share(mesaj);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Tahakkuklar'), elevation: 0),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _tahakkuklar.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 80,
-                    color: Colors.grey.shade400,
+          : Column(
+              children: [
+                // Arama ve Filtreler
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Henüz tahakkuk oluşturulmamış',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  child: Column(
+                    children: [
+                      // Arama çubuğu
+                      TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Ad, soyad veya abone no ara...',
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Color(0xFF0F4C81),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0F4C81),
+                              width: 2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                          _filterByYearAndDonem();
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      // Yıl ve Dönem Filtreleri
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              decoration: InputDecoration(
+                                labelText: 'Yıl',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                              value: _selectedYear,
+                              items: [null, ..._availableYears.toList()].map((
+                                year,
+                              ) {
+                                return DropdownMenuItem(
+                                  value: year,
+                                  child: Text(
+                                    year == null ? 'Tüm Yıllar' : '$year',
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedYear = value;
+                                  _selectedDonemId = null;
+                                });
+                                _filterByYearAndDonem();
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              decoration: InputDecoration(
+                                labelText: 'Dönem',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                              ),
+                              value: _selectedDonemId,
+                              items: [null, ..._getFilteredDonemler()].map((
+                                donem,
+                              ) {
+                                return DropdownMenuItem(
+                                  value: donem?.id,
+                                  child: Text(
+                                    donem == null ? 'Tüm Dönemler' : donem.ad,
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedDonemId = value;
+                                });
+                                _filterByYearAndDonem();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _tahakkuklar.length,
-              itemBuilder: (c, i) {
-                final t = _tahakkuklar[i];
-                final abone = _aboneler[t.aboneId];
-                final donem = _donemler[t.donemId];
-                return _buildTahakkukCard(t, abone, donem);
-              },
+                ),
+                // Tahakkuk Listesi
+                Expanded(
+                  child: _filteredTahakkuklar.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                size: 80,
+                                color: Colors.grey.shade400,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Tahakkuk bulunamadı',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredTahakkuklar.length,
+                          itemBuilder: (c, i) {
+                            final t = _filteredTahakkuklar[i];
+                            final abone = _aboneler[t.aboneId];
+                            final donem = _donemler[t.donemId];
+                            return _buildTahakkukCard(t, abone, donem);
+                          },
+                        ),
+                ),
+              ],
             ),
     );
+  }
+
+  List<DonemlerData> _getFilteredDonemler() {
+    if (_selectedYear == null) {
+      return _allDonemler;
+    }
+    return _allDonemler.where((d) {
+      try {
+        final date = DateTime.parse(d.baslangicTarihi);
+        return date.year == _selectedYear;
+      } catch (e) {
+        return false;
+      }
+    }).toList();
   }
 
   Widget _buildTahakkukCard(
@@ -442,37 +599,54 @@ class _TahakkukListScreenState extends ConsumerState<TahakkukListScreen> {
               ),
               const SizedBox(height: 12),
               // Aksiyon butonları
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showTahsilatDialog(tahakkuk),
-                      icon: const Icon(Icons.payment, size: 18),
-                      label: const Text('Tahsilat'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.green,
-                        side: const BorderSide(color: Colors.green),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+              FutureBuilder<double>(
+                future: db.getKalanBakiye(tahakkuk.id),
+                builder: (context, snapshot) {
+                  final kalan = snapshot.data ?? 0;
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _printMakbuz(tahakkuk),
+                          icon: const Icon(Icons.print, size: 16),
+                          label: const Text(
+                            'Yazdır',
+                            style: TextStyle(fontSize: 13),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0F4C81),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _printMakbuz(tahakkuk),
-                      icon: const Icon(Icons.print, size: 18),
-                      label: const Text('Yazdır'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0F4C81),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      if (kalan > 0) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                _shareBorcMesaji(tahakkuk, abone, kalan),
+                            icon: const Icon(Icons.share, size: 16),
+                            label: const Text(
+                              'Paylaş',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE91E63),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
+                      ],
+                    ],
+                  );
+                },
               ),
             ],
           ),

@@ -5,7 +5,7 @@ import '../../db/app_database.dart';
 import '../../providers.dart';
 import '../../services/backup_service.dart';
 import '../../services/printer_service.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:bluetooth_classic/models/device.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -20,6 +20,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _loading = true;
   bool _scanningPrinters = false;
 
+  final _muhtarAdiCtrl = TextEditingController();
+  final _muhtarSoyadiCtrl = TextEditingController();
   final _kullaniciAdiCtrl = TextEditingController();
   final _sifreCtrl = TextEditingController();
   final _kullaniciTelCtrl = TextEditingController();
@@ -40,6 +42,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (settings != null && mounted) {
       setState(() {
         _settings = settings;
+        _muhtarAdiCtrl.text = settings.muhtarAdi ?? '';
+        _muhtarSoyadiCtrl.text = settings.muhtarSoyadi ?? '';
         _kullaniciAdiCtrl.text = settings.kullaniciAdi ?? '';
         _sifreCtrl.text = settings.sifre ?? '';
         _kullaniciTelCtrl.text = settings.kullaniciTel ?? '';
@@ -56,6 +60,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final db = ref.read(dbProvider);
     await db.updateSettings(
       AyarlarCompanion(
+        muhtarAdi: Value(_muhtarAdiCtrl.text.trim()),
+        muhtarSoyadi: Value(_muhtarSoyadiCtrl.text.trim()),
         kullaniciAdi: Value(_kullaniciAdiCtrl.text.trim()),
         sifre: Value(_sifreCtrl.text.trim()),
         kullaniciTel: Value(_kullaniciTelCtrl.text.trim()),
@@ -111,7 +117,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return;
       }
 
-      final selected = await showDialog<BluetoothDevice>(
+      final selected = await showDialog<Device>(
         context: context,
         builder: (c) => AlertDialog(
           title: const Text('Yazıcı Seç'),
@@ -199,6 +205,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Muhtar Bilgileri Kartı
+          _buildSectionCard(
+            title: 'Muhtar Bilgileri',
+            icon: Icons.person_pin,
+            color: const Color(0xFF2E7D32),
+            children: [
+              _buildTextField(
+                controller: _muhtarAdiCtrl,
+                label: 'Muhtar Adı',
+                icon: Icons.person,
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(
+                controller: _muhtarSoyadiCtrl,
+                label: 'Muhtar Soyadı',
+                icon: Icons.person_outline,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
           // Kullanıcı Bilgileri Kartı
           _buildSectionCard(
             title: 'Kullanıcı Bilgileri',
@@ -232,7 +259,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _buildSectionCard(
             title: 'Su Fiyatı',
             icon: Icons.attach_money,
-            color: const Color(0xFF2E7D32),
+            color: const Color(0xFF2196F3),
             children: [
               _buildTextField(
                 controller: _suM3FiyatCtrl,
@@ -437,9 +464,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     required Color color,
     required List<Widget> children,
   }) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

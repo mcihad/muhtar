@@ -1,408 +1,201 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../db/app_database.dart';
 import '../../providers.dart';
 import '../../widgets/printer_status_widget.dart';
-import '../abone/abone_form_screen.dart';
-import '../abone/abone_detail_screen.dart';
+import '../abone/aboneler_list_screen.dart';
 import '../donem/donem_list_screen.dart';
 import '../settings/settings_screen.dart';
 import '../tahakkuk/tahakkuk_list_screen.dart';
+import '../reports/reports_screen.dart';
 
-final abonelerProvider = FutureProvider.autoDispose((ref) async {
-  final db = ref.read(dbProvider);
-  return db.getAboneler();
-});
-
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  String _searchQuery = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final abonelerAsync = ref.watch(abonelerProvider);
-
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Aboneler'),
-        actions: const [PrinterStatusIcon()],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF0F4C81)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    'Muhtar',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+        title: const Text('Muhtar - Su Takip'),
+        elevation: 0,
+        actions: [
+          const PrinterStatusIcon(),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Çıkış',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('Çıkış Yap'),
+                  content: const Text(
+                    'Çıkış yapmak istediğinize emin misiniz?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c),
+                      child: const Text('İptal'),
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Su Takip Sistemi',
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Aboneler'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: const Text('Dönemler'),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      onPressed: () {
+                        Navigator.pop(c);
+                        ref.read(authProvider.notifier).state = false;
+                      },
+                      child: const Text(
+                        'Çıkış Yap',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF5F7FA), Color(0xFFE8EEF2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: GridView.count(
+          crossAxisCount: 3,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          children: [
+            _buildGridButton(
+              context,
+              icon: Icons.people,
+              label: 'Aboneler',
               onTap: () {
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AbonelerListScreen()),
+                );
+              },
+            ),
+            _buildGridButton(
+              context,
+              icon: Icons.calendar_today,
+              label: 'Dönemler',
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const DonemListScreen()),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.receipt_long),
-              title: const Text('Tahakkuklar'),
+            _buildGridButton(
+              context,
+              icon: Icons.receipt_long,
+              label: 'Tahakkuklar',
               onTap: () {
-                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const TahakkukListScreen()),
                 );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Ayarlar'),
+            _buildGridButton(
+              context,
+              icon: Icons.assessment,
+              label: 'Raporlar',
               onTap: () {
-                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                );
+              },
+            ),
+            _buildGridButton(
+              context,
+              icon: Icons.settings,
+              label: 'Ayarlar',
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const SettingsScreen()),
                 );
               },
             ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Çıkış', style: TextStyle(color: Colors.red)),
-              onTap: () {
-                ref.read(authProvider.notifier).state = false;
-                Navigator.pop(context);
-              },
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGridButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    // Her buton için farklı renk
+    final Color buttonColor;
+    switch (label) {
+      case 'Aboneler':
+        buttonColor = const Color(0xFF2196F3);
+        break;
+      case 'Dönemler':
+        buttonColor = const Color(0xFF9C27B0);
+        break;
+      case 'Tahakkuklar':
+        buttonColor = const Color(0xFFE91E63);
+        break;
+      case 'Raporlar':
+        buttonColor = const Color(0xFF4CAF50);
+        break;
+      case 'Ayarlar':
+        buttonColor = const Color(0xFFFF9800);
+        break;
+      default:
+        buttonColor = const Color(0xFF0F4C81);
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [buttonColor, buttonColor.withOpacity(0.8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: buttonColor.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 36),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // Arama çubuğu
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Ad, soyad veya abone no ile ara...',
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF0F4C81)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF0F4C81),
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
-            ),
-          ),
-          // Abone listesi
-          Expanded(
-            child: abonelerAsync.when(
-              data: (list) {
-                // Arama filtresi uygula
-                final filteredList = list.where((a) {
-                  if (_searchQuery.isEmpty) return true;
-                  final fullName = '${a.ad}${a.soyad ?? ''}'.toLowerCase();
-                  final aboneNo = a.aboneNo.toLowerCase();
-                  return fullName.contains(_searchQuery) ||
-                      aboneNo.contains(_searchQuery);
-                }).toList();
-
-                if (filteredList.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 64,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isEmpty
-                              ? 'Henüz abone eklenmemiş'
-                              : 'Arama sonucu bulunamadı',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: filteredList.length,
-                  itemBuilder: (c, i) {
-                    final a = filteredList[i];
-                    return _AboneCard(abone: a, ref: ref);
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.red,
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Hata: $e', style: const TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AboneFormScreen()),
-          );
-          if (result == true) {
-            ref.invalidate(abonelerProvider);
-          }
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Yeni Abone'),
-        backgroundColor: const Color(0xFF0F4C81),
-      ),
-    );
-  }
-}
-
-// Abone kartı widget'ı
-class _AboneCard extends ConsumerWidget {
-  final AbonelerData abone;
-  final WidgetRef ref;
-
-  const _AboneCard({required this.abone, required this.ref});
-
-  @override
-  Widget build(BuildContext context, WidgetRef _) {
-    final db = ref.read(dbProvider);
-
-    return FutureBuilder<Map<String, double>>(
-      future: db.getAboneBorcBilgileri(abone.id),
-      builder: (context, snapshot) {
-        final borcBilgi = snapshot.data;
-        final toplamBorc = borcBilgi?['toplam_borc'] ?? 0.0;
-        final kalan = borcBilgi?['kalan'] ?? 0.0;
-
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AboneDetailScreen(aboneId: abone.id),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  // Avatar
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: const Color(0xFF0F4C81),
-                    child: Text(
-                      abone.ad[0].toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Bilgiler
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${abone.ad}${abone.soyad != null ? ' ${abone.soyad}' : ''}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.tag,
-                              size: 14,
-                              color: Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Abone No: ${abone.aboneNo}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (abone.saatNo != null &&
-                            abone.saatNo!.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.speed,
-                                size: 14,
-                                color: Colors.grey.shade600,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Sayaç: ${abone.saatNo}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  // Borç bilgisi badge
-                  if (snapshot.connectionState == ConnectionState.waiting)
-                    const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: kalan > 0
-                                ? Colors.red.shade50
-                                : Colors.green.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: kalan > 0
-                                  ? Colors.red.shade200
-                                  : Colors.green.shade200,
-                            ),
-                          ),
-                          child: Text(
-                            '${kalan.toStringAsFixed(2)} ₺',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: kalan > 0
-                                  ? Colors.red.shade700
-                                  : Colors.green.shade700,
-                            ),
-                          ),
-                        ),
-                        if (toplamBorc > 0) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Toplam: ${toplamBorc.toStringAsFixed(2)} ₺',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

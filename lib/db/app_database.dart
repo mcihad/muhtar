@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -14,6 +15,8 @@ class Ayarlar extends Table {
   IntColumn get id => integer()
       .customConstraint('CHECK (id = 1)')
       .withDefault(const Constant(1))();
+  TextColumn get muhtarAdi => text().named('muhtar_adi').nullable()();
+  TextColumn get muhtarSoyadi => text().named('muhtar_soyadi').nullable()();
   TextColumn get kullaniciAdi => text().named('kullanici_adi').nullable()();
   TextColumn get sifre => text().nullable()();
   TextColumn get kullaniciTel => text().named('kullanici_tel').nullable()();
@@ -312,7 +315,10 @@ class AppDatabase extends _$AppDatabase {
   Future<EndekslerData?> getLastEndeks(int aboneId) async {
     final query = select(endeksler)
       ..where((t) => t.aboneId.equals(aboneId))
-      ..orderBy([(t) => OrderingTerm.desc(t.tarih)])
+      ..orderBy([
+        (t) => OrderingTerm.desc(t.tarih),
+        (t) => OrderingTerm.desc(t.id),
+      ])
       ..limit(1);
     return query.getSingleOrNull();
   }
@@ -376,6 +382,14 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<TahakkuklarData>> getTahakkukByAbone(int aboneId) {
     return getTahakkuklarByAbone(aboneId);
+  }
+
+  Future<List<TahakkuklarData>> getAllTahakkuklar() {
+    return select(tahakkuklar).get();
+  }
+
+  Future<List<EndekslerData>> getAllEndeksler() {
+    return select(endeksler).get();
   }
 
   Future<void> updateTahakkuk(int id, TahakkuklarCompanion companion) =>
@@ -509,37 +523,77 @@ class AppDatabase extends _$AppDatabase {
     required double yeniSayacEndeks,
   }) async {
     await transaction(() async {
-      // Eski sayacı deaktive et
+      // Get the old meter's starting endeks
+      final eskiSayac = await (select(
+        sayaclar,
+      )..where((t) => t.id.equals(eskiSayacId))).getSingleOrNull();
+
+      if (eskiSayac == null) {
+        throw Exception('Eski sayaç bulunamadı');
+      }
+
+      // Calculate consumption
+      final baslangicEndeks = eskiSayac.baslangicEndeks;
+      final tuketim = max(0.0, eskiSayacSonEndeks - baslangicEndeks);
+
+      // If there's consumption, create a bill for the current active period
+      if (tuketim > 0) {
+        // Get current active donem or create one
+        final ayarlar = await getSettings();
+        final donemId = ayarlar?.varsayilanDonemId;
+
+        if (donemId != null) {
+          final birimFiyat = ayarlar?.suM3Fiyat ?? 0.0;
+          final tutar = tuketim * birimFiyat;
+
+          // Create a bill
+          await (into(tahakkuklar).insert(
+            TahakkuklarCompanion(
+              aboneId: Value(aboneId),
+              donemId: Value(donemId),
+              ilkEndeks: Value(baslangicEndeks),
+              sonEndeks: Value(eskiSayacSonEndeks),
+              tuketimM3: Value(tuketim),
+              birimFiyat: Value(birimFiyat),
+              tutar: Value(tutar),
+              olusturmaTarihi: Value(DateTime.now().toIso8601String()),
+              durum: const Value('beklemede'),
+            ),
+          ));
+        }
+      }
+
+      // Archive the old meter (deactivate)
       await deaktivateSayac(eskiSayacId, eskiSayacSonEndeks);
 
-      // Son endeks kaydı oluştur
+      // Create endeks record for old meter with "meter change" note
       await createEndeks(
         aboneId: aboneId,
         tarih: DateTime.now().toIso8601String(),
         endeks: eskiSayacSonEndeks,
         okuyanKisi: 'Sistem',
-        aciklama: 'Sayaç değişimi - eski sayaç son endeks',
+        aciklama: 'Sayaç değişimi - Eski sayaç arşivlendi',
       );
 
-      // Yeni sayacı oluştur
+      // Create new meter
       await createSayac(
         aboneId: aboneId,
         saatNo: yeniSaatNo,
         baslangicEndeks: yeniSayacEndeks,
         baslangicTarihi: DateTime.now().toIso8601String(),
-        aciklama: 'Sayaç değişimi',
+        aciklama: 'Sayaç değişimi - Yeni sayaç',
       );
 
-      // Yeni sayaç için endeks kaydı oluştur
+      // Create endeks record for new meter with "meter change" note
       await createEndeks(
         aboneId: aboneId,
         tarih: DateTime.now().toIso8601String(),
         endeks: yeniSayacEndeks,
         okuyanKisi: 'Sistem',
-        aciklama: 'Sayaç değişimi - yeni sayaç ilk endeks',
+        aciklama: 'Sayaç değişimi - Yeni sayaç başlangıç',
       );
 
-      // Abone tablosunda sayaç bilgisini güncelle
+      // Update abone with new meter number
       await updateAbone(aboneId, AbonelerCompanion(saatNo: Value(yeniSaatNo)));
     });
   }

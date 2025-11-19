@@ -34,6 +34,9 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authed = ref.watch(authProvider);
+    // Auto-connect printer on app startup
+    ref.watch(printerAutoConnectProvider);
+
     return MaterialApp(
       title: 'Muhtar Su Takip',
       debugShowCheckedModeBanner: false,

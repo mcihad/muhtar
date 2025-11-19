@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:flutter/widgets.dart';
-
 class BixolonSlcsGenerator {
   final StringBuffer _contentBuffer = StringBuffer();
   int _currentY = 30;

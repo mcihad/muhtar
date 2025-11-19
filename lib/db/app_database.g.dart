@@ -19,6 +19,28 @@ class $AyarlarTable extends Ayarlar with TableInfo<$AyarlarTable, AyarlarData> {
     $customConstraints: 'CHECK (id = 1)',
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _muhtarAdiMeta = const VerificationMeta(
+    'muhtarAdi',
+  );
+  @override
+  late final GeneratedColumn<String> muhtarAdi = GeneratedColumn<String>(
+    'muhtar_adi',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _muhtarSoyadiMeta = const VerificationMeta(
+    'muhtarSoyadi',
+  );
+  @override
+  late final GeneratedColumn<String> muhtarSoyadi = GeneratedColumn<String>(
+    'muhtar_soyadi',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _kullaniciAdiMeta = const VerificationMeta(
     'kullaniciAdi',
   );
@@ -132,6 +154,8 @@ class $AyarlarTable extends Ayarlar with TableInfo<$AyarlarTable, AyarlarData> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    muhtarAdi,
+    muhtarSoyadi,
     kullaniciAdi,
     sifre,
     kullaniciTel,
@@ -157,6 +181,21 @@ class $AyarlarTable extends Ayarlar with TableInfo<$AyarlarTable, AyarlarData> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('muhtar_adi')) {
+      context.handle(
+        _muhtarAdiMeta,
+        muhtarAdi.isAcceptableOrUnknown(data['muhtar_adi']!, _muhtarAdiMeta),
+      );
+    }
+    if (data.containsKey('muhtar_soyadi')) {
+      context.handle(
+        _muhtarSoyadiMeta,
+        muhtarSoyadi.isAcceptableOrUnknown(
+          data['muhtar_soyadi']!,
+          _muhtarSoyadiMeta,
+        ),
+      );
     }
     if (data.containsKey('kullanici_adi')) {
       context.handle(
@@ -249,6 +288,14 @@ class $AyarlarTable extends Ayarlar with TableInfo<$AyarlarTable, AyarlarData> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      muhtarAdi: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}muhtar_adi'],
+      ),
+      muhtarSoyadi: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}muhtar_soyadi'],
+      ),
       kullaniciAdi: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}kullanici_adi'],
@@ -300,6 +347,8 @@ class $AyarlarTable extends Ayarlar with TableInfo<$AyarlarTable, AyarlarData> {
 
 class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   final int id;
+  final String? muhtarAdi;
+  final String? muhtarSoyadi;
   final String? kullaniciAdi;
   final String? sifre;
   final String? kullaniciTel;
@@ -312,6 +361,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   final int? varsayilanDonemId;
   const AyarlarData({
     required this.id,
+    this.muhtarAdi,
+    this.muhtarSoyadi,
     this.kullaniciAdi,
     this.sifre,
     this.kullaniciTel,
@@ -327,6 +378,12 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    if (!nullToAbsent || muhtarAdi != null) {
+      map['muhtar_adi'] = Variable<String>(muhtarAdi);
+    }
+    if (!nullToAbsent || muhtarSoyadi != null) {
+      map['muhtar_soyadi'] = Variable<String>(muhtarSoyadi);
+    }
     if (!nullToAbsent || kullaniciAdi != null) {
       map['kullanici_adi'] = Variable<String>(kullaniciAdi);
     }
@@ -361,6 +418,12 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   AyarlarCompanion toCompanion(bool nullToAbsent) {
     return AyarlarCompanion(
       id: Value(id),
+      muhtarAdi: muhtarAdi == null && nullToAbsent
+          ? const Value.absent()
+          : Value(muhtarAdi),
+      muhtarSoyadi: muhtarSoyadi == null && nullToAbsent
+          ? const Value.absent()
+          : Value(muhtarSoyadi),
       kullaniciAdi: kullaniciAdi == null && nullToAbsent
           ? const Value.absent()
           : Value(kullaniciAdi),
@@ -399,6 +462,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AyarlarData(
       id: serializer.fromJson<int>(json['id']),
+      muhtarAdi: serializer.fromJson<String?>(json['muhtarAdi']),
+      muhtarSoyadi: serializer.fromJson<String?>(json['muhtarSoyadi']),
       kullaniciAdi: serializer.fromJson<String?>(json['kullaniciAdi']),
       sifre: serializer.fromJson<String?>(json['sifre']),
       kullaniciTel: serializer.fromJson<String?>(json['kullaniciTel']),
@@ -420,6 +485,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'muhtarAdi': serializer.toJson<String?>(muhtarAdi),
+      'muhtarSoyadi': serializer.toJson<String?>(muhtarSoyadi),
       'kullaniciAdi': serializer.toJson<String?>(kullaniciAdi),
       'sifre': serializer.toJson<String?>(sifre),
       'kullaniciTel': serializer.toJson<String?>(kullaniciTel),
@@ -435,6 +502,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
 
   AyarlarData copyWith({
     int? id,
+    Value<String?> muhtarAdi = const Value.absent(),
+    Value<String?> muhtarSoyadi = const Value.absent(),
     Value<String?> kullaniciAdi = const Value.absent(),
     Value<String?> sifre = const Value.absent(),
     Value<String?> kullaniciTel = const Value.absent(),
@@ -447,6 +516,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
     Value<int?> varsayilanDonemId = const Value.absent(),
   }) => AyarlarData(
     id: id ?? this.id,
+    muhtarAdi: muhtarAdi.present ? muhtarAdi.value : this.muhtarAdi,
+    muhtarSoyadi: muhtarSoyadi.present ? muhtarSoyadi.value : this.muhtarSoyadi,
     kullaniciAdi: kullaniciAdi.present ? kullaniciAdi.value : this.kullaniciAdi,
     sifre: sifre.present ? sifre.value : this.sifre,
     kullaniciTel: kullaniciTel.present ? kullaniciTel.value : this.kullaniciTel,
@@ -467,6 +538,10 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   AyarlarData copyWithCompanion(AyarlarCompanion data) {
     return AyarlarData(
       id: data.id.present ? data.id.value : this.id,
+      muhtarAdi: data.muhtarAdi.present ? data.muhtarAdi.value : this.muhtarAdi,
+      muhtarSoyadi: data.muhtarSoyadi.present
+          ? data.muhtarSoyadi.value
+          : this.muhtarSoyadi,
       kullaniciAdi: data.kullaniciAdi.present
           ? data.kullaniciAdi.value
           : this.kullaniciAdi,
@@ -498,6 +573,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   String toString() {
     return (StringBuffer('AyarlarData(')
           ..write('id: $id, ')
+          ..write('muhtarAdi: $muhtarAdi, ')
+          ..write('muhtarSoyadi: $muhtarSoyadi, ')
           ..write('kullaniciAdi: $kullaniciAdi, ')
           ..write('sifre: $sifre, ')
           ..write('kullaniciTel: $kullaniciTel, ')
@@ -515,6 +592,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
   @override
   int get hashCode => Object.hash(
     id,
+    muhtarAdi,
+    muhtarSoyadi,
     kullaniciAdi,
     sifre,
     kullaniciTel,
@@ -531,6 +610,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
       identical(this, other) ||
       (other is AyarlarData &&
           other.id == this.id &&
+          other.muhtarAdi == this.muhtarAdi &&
+          other.muhtarSoyadi == this.muhtarSoyadi &&
           other.kullaniciAdi == this.kullaniciAdi &&
           other.sifre == this.sifre &&
           other.kullaniciTel == this.kullaniciTel &&
@@ -545,6 +626,8 @@ class AyarlarData extends DataClass implements Insertable<AyarlarData> {
 
 class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   final Value<int> id;
+  final Value<String?> muhtarAdi;
+  final Value<String?> muhtarSoyadi;
   final Value<String?> kullaniciAdi;
   final Value<String?> sifre;
   final Value<String?> kullaniciTel;
@@ -557,6 +640,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   final Value<int?> varsayilanDonemId;
   const AyarlarCompanion({
     this.id = const Value.absent(),
+    this.muhtarAdi = const Value.absent(),
+    this.muhtarSoyadi = const Value.absent(),
     this.kullaniciAdi = const Value.absent(),
     this.sifre = const Value.absent(),
     this.kullaniciTel = const Value.absent(),
@@ -570,6 +655,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   });
   AyarlarCompanion.insert({
     this.id = const Value.absent(),
+    this.muhtarAdi = const Value.absent(),
+    this.muhtarSoyadi = const Value.absent(),
     this.kullaniciAdi = const Value.absent(),
     this.sifre = const Value.absent(),
     this.kullaniciTel = const Value.absent(),
@@ -583,6 +670,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   });
   static Insertable<AyarlarData> custom({
     Expression<int>? id,
+    Expression<String>? muhtarAdi,
+    Expression<String>? muhtarSoyadi,
     Expression<String>? kullaniciAdi,
     Expression<String>? sifre,
     Expression<String>? kullaniciTel,
@@ -596,6 +685,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (muhtarAdi != null) 'muhtar_adi': muhtarAdi,
+      if (muhtarSoyadi != null) 'muhtar_soyadi': muhtarSoyadi,
       if (kullaniciAdi != null) 'kullanici_adi': kullaniciAdi,
       if (sifre != null) 'sifre': sifre,
       if (kullaniciTel != null) 'kullanici_tel': kullaniciTel,
@@ -612,6 +703,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
 
   AyarlarCompanion copyWith({
     Value<int>? id,
+    Value<String?>? muhtarAdi,
+    Value<String?>? muhtarSoyadi,
     Value<String?>? kullaniciAdi,
     Value<String?>? sifre,
     Value<String?>? kullaniciTel,
@@ -625,6 +718,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   }) {
     return AyarlarCompanion(
       id: id ?? this.id,
+      muhtarAdi: muhtarAdi ?? this.muhtarAdi,
+      muhtarSoyadi: muhtarSoyadi ?? this.muhtarSoyadi,
       kullaniciAdi: kullaniciAdi ?? this.kullaniciAdi,
       sifre: sifre ?? this.sifre,
       kullaniciTel: kullaniciTel ?? this.kullaniciTel,
@@ -643,6 +738,12 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (muhtarAdi.present) {
+      map['muhtar_adi'] = Variable<String>(muhtarAdi.value);
+    }
+    if (muhtarSoyadi.present) {
+      map['muhtar_soyadi'] = Variable<String>(muhtarSoyadi.value);
     }
     if (kullaniciAdi.present) {
       map['kullanici_adi'] = Variable<String>(kullaniciAdi.value);
@@ -681,6 +782,8 @@ class AyarlarCompanion extends UpdateCompanion<AyarlarData> {
   String toString() {
     return (StringBuffer('AyarlarCompanion(')
           ..write('id: $id, ')
+          ..write('muhtarAdi: $muhtarAdi, ')
+          ..write('muhtarSoyadi: $muhtarSoyadi, ')
           ..write('kullaniciAdi: $kullaniciAdi, ')
           ..write('sifre: $sifre, ')
           ..write('kullaniciTel: $kullaniciTel, ')
@@ -3869,6 +3972,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$AyarlarTableCreateCompanionBuilder =
     AyarlarCompanion Function({
       Value<int> id,
+      Value<String?> muhtarAdi,
+      Value<String?> muhtarSoyadi,
       Value<String?> kullaniciAdi,
       Value<String?> sifre,
       Value<String?> kullaniciTel,
@@ -3883,6 +3988,8 @@ typedef $$AyarlarTableCreateCompanionBuilder =
 typedef $$AyarlarTableUpdateCompanionBuilder =
     AyarlarCompanion Function({
       Value<int> id,
+      Value<String?> muhtarAdi,
+      Value<String?> muhtarSoyadi,
       Value<String?> kullaniciAdi,
       Value<String?> sifre,
       Value<String?> kullaniciTel,
@@ -3906,6 +4013,16 @@ class $$AyarlarTableFilterComposer
   });
   ColumnFilters<int> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get muhtarAdi => $composableBuilder(
+    column: $table.muhtarAdi,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get muhtarSoyadi => $composableBuilder(
+    column: $table.muhtarSoyadi,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3974,6 +4091,16 @@ class $$AyarlarTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get muhtarAdi => $composableBuilder(
+    column: $table.muhtarAdi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get muhtarSoyadi => $composableBuilder(
+    column: $table.muhtarSoyadi,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get kullaniciAdi => $composableBuilder(
     column: $table.kullaniciAdi,
     builder: (column) => ColumnOrderings(column),
@@ -4036,6 +4163,14 @@ class $$AyarlarTableAnnotationComposer
   });
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get muhtarAdi =>
+      $composableBuilder(column: $table.muhtarAdi, builder: (column) => column);
+
+  GeneratedColumn<String> get muhtarSoyadi => $composableBuilder(
+    column: $table.muhtarSoyadi,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get kullaniciAdi => $composableBuilder(
     column: $table.kullaniciAdi,
@@ -4114,6 +4249,8 @@ class $$AyarlarTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> muhtarAdi = const Value.absent(),
+                Value<String?> muhtarSoyadi = const Value.absent(),
                 Value<String?> kullaniciAdi = const Value.absent(),
                 Value<String?> sifre = const Value.absent(),
                 Value<String?> kullaniciTel = const Value.absent(),
@@ -4126,6 +4263,8 @@ class $$AyarlarTableTableManager
                 Value<int?> varsayilanDonemId = const Value.absent(),
               }) => AyarlarCompanion(
                 id: id,
+                muhtarAdi: muhtarAdi,
+                muhtarSoyadi: muhtarSoyadi,
                 kullaniciAdi: kullaniciAdi,
                 sifre: sifre,
                 kullaniciTel: kullaniciTel,
@@ -4140,6 +4279,8 @@ class $$AyarlarTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<String?> muhtarAdi = const Value.absent(),
+                Value<String?> muhtarSoyadi = const Value.absent(),
                 Value<String?> kullaniciAdi = const Value.absent(),
                 Value<String?> sifre = const Value.absent(),
                 Value<String?> kullaniciTel = const Value.absent(),
@@ -4152,6 +4293,8 @@ class $$AyarlarTableTableManager
                 Value<int?> varsayilanDonemId = const Value.absent(),
               }) => AyarlarCompanion.insert(
                 id: id,
+                muhtarAdi: muhtarAdi,
+                muhtarSoyadi: muhtarSoyadi,
                 kullaniciAdi: kullaniciAdi,
                 sifre: sifre,
                 kullaniciTel: kullaniciTel,

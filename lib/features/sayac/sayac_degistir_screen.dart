@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../../db/app_database.dart';
 import '../../providers.dart';
 
@@ -36,24 +37,117 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
     try {
       final db = ref.read(dbProvider);
 
-      // Aktif sayacı bul
-      final aktifSayac = await db.getAktifSayac(widget.abone.id);
-
-      if (aktifSayac == null) {
-        throw Exception('Aktif sayaç bulunamadı');
-      }
-
       final eskiSonEndeks = double.parse(_eskiSonEndeksController.text);
       final yeniSaatNo = _yeniSaatNoController.text;
       final yeniEndeks = double.parse(_yeniEndeksController.text);
+      final tarih = DateTime.now().toIso8601String();
 
-      await db.changeMeter(
-        aboneId: widget.abone.id,
-        eskiSayacId: aktifSayac.id,
-        eskiSayacSonEndeks: eskiSonEndeks,
-        yeniSaatNo: yeniSaatNo,
-        yeniSayacEndeks: yeniEndeks,
-      );
+      // Tüm işlemleri tek bir transaction içinde yap
+      await db.transaction(() async {
+        // Eski sayaç bilgilerini sayaclar tablosuna arşivle
+        if (widget.abone.saatNo != null && widget.abone.saatNo!.isNotEmpty) {
+          await db
+              .into(db.sayaclar)
+              .insert(
+                SayaclarCompanion.insert(
+                  aboneId: widget.abone.id,
+                  saatNo: widget.abone.saatNo!,
+                  baslangicEndeks: 0.0,
+                  baslangicTarihi: tarih,
+                  bitisEndeks: Value(eskiSonEndeks),
+                  bitisTarihi: Value(tarih),
+                  aktif: const Value(0),
+                  aciklama: const Value('Sayaç değişimi nedeniyle arşivlendi'),
+                ),
+              );
+        }
+
+        // Önceki endeks değerini al (tahakkuk hesabı için)
+        final oncekiEndeks = await db.getLastEndeks(widget.abone.id);
+        final ilkEndeks = oncekiEndeks?.endeks ?? 0.0;
+
+        // Eski sayacın son endeksini kaydet
+        await db
+            .into(db.endeksler)
+            .insert(
+              EndekslerCompanion.insert(
+                aboneId: widget.abone.id,
+                tarih: tarih,
+                endeks: eskiSonEndeks,
+                okuyanKisi: const Value('Sistem'),
+                aciklama: const Value(
+                  'Sayaç değişimi - Eski sayaç son endeksi (tahmini)',
+                ),
+              ),
+            );
+
+        // Tüketim hesapla: sayaç durumuna göre
+        double tuketim;
+        final saatDurumu = widget.abone.saatDurumu;
+        if (saatDurumu == 'ters') {
+          tuketim = ilkEndeks - eskiSonEndeks;
+        } else {
+          tuketim = eskiSonEndeks - ilkEndeks;
+        }
+
+        // Negatif tüketimi önle
+        if (tuketim < 0) tuketim = 0;
+
+        // Aktif dönemi al
+        final ayarlar = await db.getSettings();
+        final donemler = await db.getDonemler();
+
+        if (donemler.isNotEmpty && ayarlar != null) {
+          // İlk dönemi veya varsayılan dönemi kullan
+          final aktifDonem = ayarlar.varsayilanDonemId != null
+              ? donemler.firstWhere(
+                  (d) => d.id == ayarlar.varsayilanDonemId,
+                  orElse: () => donemler.first,
+                )
+              : donemler.first;
+
+          final birimFiyat = ayarlar.suM3Fiyat;
+          final tutar = tuketim * birimFiyat;
+
+          // Tahakkuk oluştur
+          await db
+              .into(db.tahakkuklar)
+              .insert(
+                TahakkuklarCompanion.insert(
+                  aboneId: widget.abone.id,
+                  donemId: aktifDonem.id,
+                  ilkEndeks: Value(ilkEndeks),
+                  sonEndeks: Value(eskiSonEndeks),
+                  tuketimM3: Value(tuketim),
+                  birimFiyat: birimFiyat,
+                  tutar: tutar,
+                  olusturmaTarihi: tarih,
+                  durum: const Value('beklemede'),
+                ),
+              );
+        }
+
+        // Abone bilgilerini güncelle (yeni sayaç numarası)
+        await db.updateAbone(
+          widget.abone.id,
+          AbonelerCompanion(saatNo: Value(yeniSaatNo)),
+        );
+
+        // Yeni sayacın ilk endeksini kaydet
+        await db
+            .into(db.endeksler)
+            .insert(
+              EndekslerCompanion.insert(
+                aboneId: widget.abone.id,
+                tarih: tarih,
+                endeks: yeniEndeks,
+                okuyanKisi: const Value('Sistem'),
+                aciklama: const Value(
+                  'Sayaç değişimi - Yeni sayaç ilk endeksi',
+                ),
+              ),
+            );
+      });
 
       if (mounted) {
         Navigator.pop(context, true);
@@ -80,26 +174,11 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text('Sayaç Değiştir'),
-        actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            )
-          else
-            IconButton(icon: const Icon(Icons.check), onPressed: _save),
-        ],
+        backgroundColor: const Color(0xFFF44336),
+        elevation: 0,
       ),
       body: Form(
         key: _formKey,
@@ -107,23 +186,27 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             // Abone bilgi kartı
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF44336), Color(0xFFE53935)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 24,
-                      backgroundColor: const Color(0xFF0F4C81),
+                      radius: 28,
+                      backgroundColor: Colors.white.withOpacity(0.3),
                       child: Text(
                         widget.abone.ad[0].toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -138,13 +221,14 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
                           Text(
                             'Abone No: ${widget.abone.aboneNo}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: Colors.white.withOpacity(0.9),
                             ),
                           ),
                           if (widget.abone.saatNo != null)
@@ -152,7 +236,7 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
                               'Mevcut Sayaç: ${widget.abone.saatNo}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Colors.white.withOpacity(0.9),
                               ),
                             ),
                         ],
@@ -162,132 +246,202 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Eski sayaç son endeks
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            // Eski sayaç başlığı
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF6F00), Color(0xFFE65100)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.speed, color: Colors.orange.shade700),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Eski Sayaç',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    TextFormField(
-                      controller: _eskiSonEndeksController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                    const Icon(Icons.speed, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Eski Sayaç',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      decoration: InputDecoration(
-                        labelText: 'Son Endeks *',
-                        hintText: 'Eski sayacın son endeksi',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: const Icon(Icons.water_drop),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Son endeks giriniz';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Geçerli sayı giriniz';
-                        }
-                        return null;
-                      },
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Yeni sayaç bilgileri
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 24),
+              child: TextFormField(
+                controller: _eskiSonEndeksController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Son Endeks *',
+                  hintText: 'Eski sayacın son endeksi',
+                  prefixIcon: const Icon(
+                    Icons.water_drop,
+                    color: Color(0xFFFF6F00),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFF6F00),
+                      width: 2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Son endeks giriniz';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Geçerli sayı giriniz';
+                  }
+                  return null;
+                },
+              ),
+            ),
+
+            // Yeni sayaç başlığı
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(Icons.fiber_new, color: Colors.green.shade700),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Yeni Sayaç',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    TextFormField(
-                      controller: _yeniSaatNoController,
-                      decoration: InputDecoration(
-                        labelText: 'Yeni Sayaç Numarası *',
-                        hintText: 'Yeni sayaç numarası',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: const Icon(Icons.numbers),
+                    const Icon(Icons.fiber_new, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Yeni Sayaç',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Sayaç numarası giriniz';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _yeniEndeksController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: InputDecoration(
-                        labelText: 'Yeni Sayaç İlk Endeks *',
-                        hintText: 'Yeni sayacın ilk endeksi',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: const Icon(Icons.water_drop),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'İlk endeks giriniz';
-                        }
-                        if (double.tryParse(value) == null) {
-                          return 'Geçerli sayı giriniz';
-                        }
-                        return null;
-                      },
                     ),
                   ],
                 ),
               ),
             ),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _yeniSaatNoController,
+                    decoration: InputDecoration(
+                      labelText: 'Yeni Sayaç Numarası *',
+                      hintText: 'Yeni sayaç numarası',
+                      prefixIcon: const Icon(
+                        Icons.numbers,
+                        color: Color(0xFF4CAF50),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF4CAF50),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Sayaç numarası giriniz';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _yeniEndeksController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Yeni Sayaç İlk Endeks *',
+                      hintText: 'Yeni sayacın ilk endeksi',
+                      prefixIcon: const Icon(
+                        Icons.water_drop,
+                        color: Color(0xFF4CAF50),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF4CAF50),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'İlk endeks giriniz';
+                      }
+                      if (double.tryParse(value) == null) {
+                        return 'Geçerli sayı giriniz';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -309,9 +463,9 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
-              backgroundColor: const Color(0xFF0F4C81),
+              backgroundColor: const Color(0xFFF44336),
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -324,7 +478,11 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
                   )
                 : const Text(
                     'DEĞİŞTİR',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
           ),
         ),

@@ -166,23 +166,11 @@ class _DonemFormScreenState extends ConsumerState<DonemFormScreen> {
     final dateFormat = DateFormat('dd MMMM yyyy');
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: Text(isEdit ? 'Dönem Düzenle' : 'Yeni Dönem'),
-        actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            IconButton(icon: const Icon(Icons.check), onPressed: _save),
-        ],
+        backgroundColor: const Color(0xFF9C27B0),
+        elevation: 0,
       ),
       body: Form(
         key: _formKey,
@@ -212,239 +200,280 @@ class _DonemFormScreenState extends ConsumerState<DonemFormScreen> {
                   ],
                 ),
               ),
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.event,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Dönem Bilgileri',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    TextFormField(
-                      controller: _adController,
-                      decoration: InputDecoration(
-                        labelText: 'Dönem Adı *',
-                        prefixIcon: const Icon(Icons.label),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        hintText: 'Örn: Ocak 2025',
-                      ),
-                      validator: (v) =>
-                          v?.isEmpty ?? true ? 'Dönem adı gerekli' : null,
-                    ),
-                  ],
+            // Dönem Bilgileri Header
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF9C27B0), Color(0xFF7B1FA2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_month,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Tarihler',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-
-                    // Başlangıç Tarihi
-                    InkWell(
-                      onTap: () => _selectDate(context, 'baslangic'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Başlangıç Tarihi *',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _baslangicTarihi != null
-                                        ? dateFormat.format(_baslangicTarihi!)
-                                        : 'Tarih seçiniz',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: _baslangicTarihi != null
-                                          ? FontWeight.w500
-                                          : FontWeight.normal,
-                                      color: _baslangicTarihi != null
-                                          ? Colors.black
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, size: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Bitiş Tarihi
-                    InkWell(
-                      onTap: () => _selectDate(context, 'bitis'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.event_available,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Bitiş Tarihi *',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _bitisTarihi != null
-                                        ? dateFormat.format(_bitisTarihi!)
-                                        : 'Tarih seçiniz',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: _bitisTarihi != null
-                                          ? FontWeight.w500
-                                          : FontWeight.normal,
-                                      color: _bitisTarihi != null
-                                          ? Colors.black
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, size: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Son Ödeme Tarihi
-                    InkWell(
-                      onTap: () => _selectDate(context, 'odem'),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.payment, color: Colors.orange.shade700),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Son Ödeme Tarihi',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _sonOdemeTarihi != null
-                                        ? dateFormat.format(_sonOdemeTarihi!)
-                                        : 'Tarih seçiniz (isteğe bağlı)',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: _sonOdemeTarihi != null
-                                          ? FontWeight.w500
-                                          : FontWeight.normal,
-                                      color: _sonOdemeTarihi != null
-                                          ? Colors.black
-                                          : Colors.grey,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, size: 16),
-                          ],
-                        ),
+                    const Icon(Icons.event, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Dönem Bilgileri',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 24),
+              child: TextFormField(
+                controller: _adController,
+                decoration: InputDecoration(
+                  labelText: 'Dönem Adı *',
+                  prefixIcon: const Icon(Icons.label, color: Color(0xFF9C27B0)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF9C27B0),
+                      width: 2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  hintText: 'Örn: Ocak 2025',
+                ),
+                validator: (v) =>
+                    v?.isEmpty ?? true ? 'Dönem adı gerekli' : null,
+              ),
+            ),
+
+            // Tarihler Header
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF673AB7), Color(0xFF512DA8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Tarihler',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Başlangıç Tarihi
+                  InkWell(
+                    onTap: _canEdit
+                        ? () => _selectDate(context, 'baslangic')
+                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFF9C27B0).withOpacity(0.3),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: const Color(0xFF9C27B0),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Başlangıç Tarihi *',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _baslangicTarihi != null
+                                      ? dateFormat.format(_baslangicTarihi!)
+                                      : 'Tarih seçiniz',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: _baslangicTarihi != null
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
+                                    color: _baslangicTarihi != null
+                                        ? Colors.black
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bitiş Tarihi
+                  InkWell(
+                    onTap: _canEdit
+                        ? () => _selectDate(context, 'bitis')
+                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFF9C27B0).withOpacity(0.3),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.event_available,
+                            color: const Color(0xFF9C27B0),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Bitiş Tarihi *',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _bitisTarihi != null
+                                      ? dateFormat.format(_bitisTarihi!)
+                                      : 'Tarih seçiniz',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: _bitisTarihi != null
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
+                                    color: _bitisTarihi != null
+                                        ? Colors.black
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Son Ödeme Tarihi
+                  InkWell(
+                    onTap: _canEdit ? () => _selectDate(context, 'odem') : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.orange.withOpacity(0.3),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.payment, color: Colors.orange.shade700),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Son Ödeme Tarihi',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _sonOdemeTarihi != null
+                                      ? dateFormat.format(_sonOdemeTarihi!)
+                                      : 'Tarih seçiniz (isteğe bağlı)',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: _sonOdemeTarihi != null
+                                        ? FontWeight.w500
+                                        : FontWeight.normal,
+                                    color: _sonOdemeTarihi != null
+                                        ? Colors.black
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -464,22 +493,27 @@ class _DonemFormScreenState extends ConsumerState<DonemFormScreen> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _save,
             style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF9C27B0),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : Text(
                     isEdit ? 'GÜNCELLE' : 'KAYDET',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
           ),

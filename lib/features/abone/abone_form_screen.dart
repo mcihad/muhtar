@@ -82,7 +82,7 @@ class _AboneFormScreenState extends ConsumerState<AboneFormScreen> {
           throw Exception('İlk endeks girilmelidir');
         }
 
-        final aboneId = await db.createAboneFull(
+        await db.createAboneFull(
           ad: _adController.text,
           soyad: _soyadController.text.isEmpty ? null : _soyadController.text,
           tel: _telController.text.isEmpty ? null : _telController.text,
@@ -147,28 +147,37 @@ class _AboneFormScreenState extends ConsumerState<AboneFormScreen> {
     }
   }
 
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: const Color(0xFF2196F3)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 2),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.abone != null;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: Text(isEdit ? 'Abone Düzenle' : 'Yeni Abone'),
-        actions: [
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
-          else
-            IconButton(icon: const Icon(Icons.check), onPressed: _save),
-        ],
+        backgroundColor: const Color(0xFF2196F3),
+        elevation: 0,
       ),
       body: Form(
         key: _formKey,
@@ -176,154 +185,163 @@ class _AboneFormScreenState extends ConsumerState<AboneFormScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             // Temel Bilgiler Kartı
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Temel Bilgiler',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    TextFormField(
-                      controller: _adController,
-                      decoration: InputDecoration(
-                        labelText: 'Ad *',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    const Icon(Icons.person, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Temel Bilgiler',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      validator: (v) =>
-                          v?.isEmpty ?? true ? 'Ad gerekli' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _soyadController,
-                      decoration: InputDecoration(
-                        labelText: 'Soyad',
-                        prefixIcon: const Icon(Icons.person_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _telController,
-                      decoration: InputDecoration(
-                        labelText: 'Telefon',
-                        prefixIcon: const Icon(Icons.phone),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      keyboardType: TextInputType.phone,
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _adController,
+                    decoration: _buildInputDecoration(
+                      'Ad *',
+                      Icons.person_outline,
+                    ),
+                    validator: (v) => v?.isEmpty ?? true ? 'Ad gerekli' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _soyadController,
+                    decoration: _buildInputDecoration(
+                      'Soyad',
+                      Icons.person_outline,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _telController,
+                    decoration: _buildInputDecoration('Telefon', Icons.phone),
+                    keyboardType: TextInputType.phone,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
 
             // Sayaç Bilgileri Kartı
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4CAF50), Color(0xFF388E3C)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.speed,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Sayaç Bilgileri',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _aboneNoController,
-                            decoration: InputDecoration(
-                              labelText: 'Abone No *',
-                              prefixIcon: const Icon(Icons.tag),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            validator: (v) =>
-                                v?.isEmpty ?? true ? 'Abone no gerekli' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton.icon(
-                          onPressed: _isLoading ? null : _generateAboneNo,
-                          icon: const Icon(Icons.auto_awesome),
-                          label: const Text('Otomatik'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 20,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _saatNoController,
-                      decoration: InputDecoration(
-                        labelText: 'Saat No',
-                        prefixIcon: const Icon(Icons.watch_later_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    const Icon(Icons.speed, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Sayaç Bilgileri',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _aboneNoController,
+                          decoration: _buildInputDecoration(
+                            'Abone No *',
+                            Icons.tag,
+                          ),
+                          validator: (v) =>
+                              v?.isEmpty ?? true ? 'Abone no gerekli' : null,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _generateAboneNo,
+                        icon: const Icon(Icons.auto_awesome),
+                        label: const Text('Otomatik'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4CAF50),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 20,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _saatNoController,
+                    decoration: _buildInputDecoration(
+                      'Saat No',
+                      Icons.watch_later_outlined,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFFE0E0E0)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonFormField<String>(
                       value: _saatDurumu,
                       decoration: InputDecoration(
                         labelText: 'Saat Durumu',
-                        prefixIcon: const Icon(Icons.settings),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        prefixIcon: const Icon(
+                          Icons.settings,
+                          color: Color(0xFF4CAF50),
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
                         ),
                       ),
                       items: const [
@@ -342,87 +360,83 @@ class _AboneFormScreenState extends ConsumerState<AboneFormScreen> {
                       ],
                       onChanged: (v) => setState(() => _saatDurumu = v!),
                     ),
-                    if (!isEdit) ...[
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _ilkEndeksController,
-                        decoration: InputDecoration(
-                          labelText: 'İlk Endeks *',
-                          prefixIcon: const Icon(Icons.speed),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          helperText: 'Sayacın mevcut gösterge değeri',
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: (v) =>
-                            v?.isEmpty ?? true ? 'İlk endeks gerekli' : null,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Adres ve Notlar Kartı
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          color: Theme.of(context).primaryColor,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Adres ve Notlar',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    TextFormField(
-                      controller: _adresController,
-                      decoration: InputDecoration(
-                        labelText: 'Adres',
-                        prefixIcon: const Icon(Icons.home),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      maxLines: 2,
-                    ),
+                  ),
+                  if (!isEdit) ...[
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _aciklamaController,
-                      decoration: InputDecoration(
-                        labelText: 'Açıklama',
-                        prefixIcon: const Icon(Icons.note),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                      controller: _ilkEndeksController,
+                      decoration: _buildInputDecoration(
+                        'İlk Endeks *',
+                        Icons.speed,
                       ),
-                      maxLines: 3,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (v) =>
+                          v?.isEmpty ?? true ? 'İlk endeks gerekli' : null,
                     ),
                   ],
-                ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
+
+            // Adres ve Notlar Kartı
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF9800), Color(0xFFF57C00)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Adres ve Notlar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _adresController,
+                    decoration: _buildInputDecoration('Adres', Icons.home),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _aciklamaController,
+                    decoration: _buildInputDecoration('Açıklama', Icons.note),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -442,22 +456,27 @@ class _AboneFormScreenState extends ConsumerState<AboneFormScreen> {
           child: ElevatedButton(
             onPressed: _isLoading ? null : _save,
             style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : Text(
                     isEdit ? 'GÜNCELLE' : 'KAYDET',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
           ),

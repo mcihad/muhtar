@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:bluetooth_classic/bluetooth_classic.dart';
+import 'package:bluetooth_classic/models/device.dart';
 import 'package:uuid/uuid.dart';
 import 'bixolon_slcs.dart';
 
@@ -10,14 +11,14 @@ class PrinterService {
   factory PrinterService() => _instance;
   PrinterService._internal();
 
-  final FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
-  BluetoothDevice? _connectedDevice;
-  BluetoothConnection? _connection;
+  final _bluetoothClassicPlugin = BluetoothClassic();
+  Device? _connectedDevice;
+  int? _connectionId;
 
   /// Eşleştirilmiş Bluetooth cihazlarını listele
-  Future<List<BluetoothDevice>> getDevices() async {
+  Future<List<Device>> getDevices() async {
     try {
-      final devices = await _bluetooth.getBondedDevices();
+      final devices = await _bluetoothClassicPlugin.getPairedDevices();
       return devices;
     } catch (e) {
       throw Exception('Cihazlar alınamadı: $e');
@@ -25,11 +26,20 @@ class PrinterService {
   }
 
   /// Yazıcıya bağlan
-  Future<bool> connect(BluetoothDevice device) async {
+  Future<bool> connect(Device device) async {
     try {
-      _connection = await BluetoothConnection.toAddress(device.address);
-      _connectedDevice = device;
-      return _connection?.isConnected ?? false;
+      await _bluetoothClassicPlugin.initPermissions();
+      final status = await _bluetoothClassicPlugin.connect(
+        device.address,
+        "00001101-0000-1000-8000-00805f9b34fb", // SPP UUID
+      );
+
+      if (status == "true") {
+        _connectedDevice = device;
+        _connectionId = 1; // bluetooth_classic her bağlantı için id kullanır
+        return true;
+      }
+      return false;
     } catch (e) {
       return false;
     }
@@ -38,9 +48,11 @@ class PrinterService {
   /// Yazıcı bağlantısını kes
   Future<void> disconnect() async {
     try {
-      await _connection?.close();
-      _connection = null;
+      if (_connectedDevice != null) {
+        await _bluetoothClassicPlugin.disconnect();
+      }
       _connectedDevice = null;
+      _connectionId = null;
     } catch (e) {
       // Ignore
     }
@@ -48,21 +60,20 @@ class PrinterService {
 
   /// Bağlı mı kontrol et
   bool isConnected() {
-    return _connection?.isConnected ?? false;
+    return _connectedDevice != null && _connectionId != null;
   }
 
   /// Bağlı cihaz
-  BluetoothDevice? get connectedDevice => _connectedDevice;
+  Device? get connectedDevice => _connectedDevice;
 
   /// Veri gönder
   Future<void> _sendData(Uint8List data) async {
-    if (_connection == null || !isConnected()) {
+    if (!isConnected()) {
       throw Exception('Yazıcı bağlı değil');
     }
 
     try {
-      _connection!.output.add(data);
-      await _connection!.output.allSent;
+      await _bluetoothClassicPlugin.write(data.toString());
       await Future.delayed(const Duration(milliseconds: 500));
     } catch (e) {
       throw Exception('Veri gönderilemedi: $e');

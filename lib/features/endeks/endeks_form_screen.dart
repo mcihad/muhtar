@@ -167,6 +167,19 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
       final endeks = double.parse(_endeksController.text);
       final aciklama = _aciklamaController.text.trim();
 
+      // İlk endeks ile son endeks aynı olamaz
+      if (_lastEndeks != null && endeks == _lastEndeks!.endeks) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Yeni endeks değeri önceki değerle aynı olamaz'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
       await db.transaction(() async {
         // Endeks kaydı oluştur
         await db.createEndeks(
