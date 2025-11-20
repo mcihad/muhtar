@@ -345,12 +345,12 @@ class _AbonelerListScreenState extends ConsumerState<AbonelerListScreen> {
       info.writeln('');
       info.writeln('=== BORÇ DURUMU ===');
       info.writeln(
-        'Toplam Borç: ${borcBilgi['toplam_borc']!.toStringAsFixed(2)} ₺',
+        'Toplam Borç: ${borcBilgi['toplam_borc']!.toStringAsFixed(2)} TL',
       );
       info.writeln(
-        'Toplam Tahsilat: ${borcBilgi['toplam_tahsilat']!.toStringAsFixed(2)} ₺',
+        'Toplam Tahsilat: ${borcBilgi['toplam_tahsilat']!.toStringAsFixed(2)} TL',
       );
-      info.writeln('Kalan: ${kalan.toStringAsFixed(2)} ₺');
+      info.writeln('Kalan: ${kalan.toStringAsFixed(2)} TL');
       info.writeln('');
       if (ayarlar?.altBilgi != null) {
         info.writeln(ayarlar!.altBilgi);

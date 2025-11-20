@@ -801,16 +801,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
         // Endeks listesi - tablo formatında
         for (var row in data) {
-          final aboneNo = (row['aboneNo'] as String).padRight(6);
+          final aboneNo = (row['aboneNo'] as String).padRight(
+            7,
+          ); // 6 + 1 boşluk
           final adSoyad = (row['ad'] as String);
           final endeks = (row['endeks'] as double)
               .toStringAsFixed(2)
               .padLeft(10);
 
           // Ad Soyad'ı 30 karaktere sığdır
-          final adSoyadFormatted = adSoyad.length > 30
-              ? '${adSoyad.substring(0, 27)}...'
-              : adSoyad.padRight(30);
+          String adSoyadFormatted;
+          if (adSoyad.length > 30) {
+            adSoyadFormatted = '${adSoyad.substring(0, 27)}...'.padRight(
+              31,
+            ); // 30 + 1 boşluk
+          } else {
+            adSoyadFormatted = adSoyad.padRight(31); // 30 + 1 boşluk
+          }
 
           buffer.writeln('$aboneNo$adSoyadFormatted$endeks');
         }

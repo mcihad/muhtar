@@ -127,12 +127,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                           ),
                                         ],
                                       ),
-                                      child: const Icon(
-                                        Icons.water_drop,
-                                        size: 40,
-                                        color: Color(0xFF0F4C81),
+                                      child: ClipOval(
+                                        child: Image.asset(
+                                          'assets/images/logo.png',
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
                                     ),
+
                                     const SizedBox(width: 16),
                                     Column(
                                       crossAxisAlignment:

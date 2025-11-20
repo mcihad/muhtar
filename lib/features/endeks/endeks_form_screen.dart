@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../db/app_database.dart';
 import '../../providers.dart';
+import '../../services/printer_service.dart';
 
 class EndeksFormScreen extends ConsumerStatefulWidget {
   final AbonelerData abone;
@@ -222,13 +223,102 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
       });
 
       if (mounted) {
-        Navigator.pop(context, true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Endeks kaydedildi ve tahakkuk oluşturuldu'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Yazıcı varsa makbuz basılsın mı diye sor
+        final printerService = PrinterService();
+        if (printerService.isConnected()) {
+          bool shouldPrint = false;
+
+          await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text('Makbuz Yazdır'),
+              content: const Text(
+                'Oluşturulan tahakkuk için makbuz yazdırmak ister misiniz?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    shouldPrint = false;
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Hayır'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    shouldPrint = true;
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2E7D32),
+                  ),
+                  child: const Text(
+                    'Evet, Yazdır',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          // Makbuz yazdır
+          if (shouldPrint && mounted) {
+            final tahakkuklar = await db.getTahakkukByAbone(widget.abone.id);
+            if (tahakkuklar.isNotEmpty) {
+              final tahakkuk = tahakkuklar.last;
+              final ayarlar = await db.getSettings();
+
+              try {
+                await printerService.printMakbuz(
+                  antetBaslik: ayarlar?.antetBaslik ?? 'SU TAKIP SISTEMI',
+                  antetAdres: ayarlar?.antetAdres ?? '',
+                  altBilgi: ayarlar?.altBilgi ?? 'Teşekkür ederiz',
+                  aboneAd:
+                      '${widget.abone.ad}${widget.abone.soyad != null ? ' ${widget.abone.soyad}' : ''}',
+                  aboneNo: widget.abone.aboneNo,
+                  donem: _selectedDonem?.ad ?? '-',
+                  ilkEndeks: tahakkuk.ilkEndeks ?? 0,
+                  sonEndeks: tahakkuk.sonEndeks ?? 0,
+                  tuketim: tahakkuk.tuketimM3 ?? 0,
+                  birimFiyat: tahakkuk.birimFiyat,
+                  tutar: tahakkuk.tutar,
+                  odenen: 0,
+                  kalan: tahakkuk.tutar,
+                  tarih: DateFormat('dd.MM.yyyy').format(DateTime.now()),
+                  tahakkukUuid: tahakkuk.uuid,
+                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Makbuz yazdırıldı'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Yazıcı hatası: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            }
+          }
+        }
+
+        // Sayfayı kapat
+        if (mounted) {
+          Navigator.pop(context, true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Endeks kaydedildi ve tahakkuk oluşturuldu'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

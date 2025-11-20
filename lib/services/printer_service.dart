@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:uuid/uuid.dart';
 import 'bixolon_slcs.dart';
 
 class PrinterDevice {
@@ -201,11 +200,12 @@ class PrinterService {
 
     bixolon.addText(
       "SU TÜKETİM İHBARNAMESİ",
-      fontType: 3,
+      fontType: 2,
       bold: true,
       align: 'C',
     );
     bixolon.addFeed(20);
+    bixolon.drawLine();
 
     // ------------ Genel Bilgiler ------------
     bixolon.addText(
@@ -282,20 +282,114 @@ class PrinterService {
       bold: true,
       align: 'L',
     );
-
+    bixolon.drawLine();
     bixolon.addFeed(15);
 
     // ------------ Alt Bilgi ------------
     bixolon.addText(altBilgi, fontType: 1, bold: false, align: 'C');
-    bixolon.addFeed(5);
+    bixolon.addFeed(50);
 
     // QR Code with tahakkuk UUID
     if (tahakkukUuid != null && tahakkukUuid.isNotEmpty) {
       bixolon.addQRCode(tahakkukUuid);
-    } else {
-      // Fallback to random UUID if not provided
-      var uid = const Uuid().v4();
-      bixolon.addQRCode(uid);
+      bixolon.addFeed(50);
+      bixolon.addText(
+        "Odeme yapmak icin barkodu kullanabilirsiniz.",
+        fontType: 1,
+        bold: false,
+        align: 'C',
+      );
+    }
+    // Yazdır
+    final bytes = bixolon.getBytes();
+    await _sendData(bytes);
+  }
+
+  // -----------------------------------------------------
+  //  İHBARNAME
+  // -----------------------------------------------------
+
+  // -----------------------------------------------------
+  //  ALINDI BELGESİ (Ödeme Yapılmış Tahakkuklar İçin)
+  // -----------------------------------------------------
+
+  Future<void> printAlindiBelgesi({
+    required String antetBaslik,
+    required String antetAdres,
+    required String aboneAd,
+    required String aboneNo,
+    required String donem,
+    required double tutar,
+    required String tarih,
+    String? tahakkukUuid,
+  }) async {
+    if (!isConnected()) {
+      throw Exception("Yazıcı bağlı değil");
+    }
+
+    final bixolon = BixolonSlcsGenerator(pageWidthDots: 550);
+
+    // ------------ Üst Başlık ------------
+    bixolon.addText(antetBaslik, fontType: 2, bold: true, align: 'C');
+    bixolon.addText(antetAdres, fontType: 1, bold: false, align: 'C');
+    bixolon.addFeed(20);
+
+    bixolon.addText("ALINDI BELGESI", fontType: 3, bold: true, align: 'C');
+    bixolon.addFeed(20);
+    bixolon.drawLine();
+
+    // ------------ Genel Bilgiler ------------
+    bixolon.addText(
+      "Tarih:".padRight(20) + tarih,
+      fontType: 1,
+      bold: false,
+      align: 'L',
+    );
+    bixolon.addText(
+      "Abone:".padRight(20) + aboneAd,
+      fontType: 1,
+      bold: false,
+      align: 'L',
+    );
+    bixolon.addText(
+      "Abone No:".padRight(20) + aboneNo,
+      fontType: 1,
+      bold: false,
+      align: 'L',
+    );
+    bixolon.addText(
+      "Donem:".padRight(20) + donem,
+      fontType: 1,
+      bold: false,
+      align: 'L',
+    );
+
+    bixolon.drawLine();
+
+    // ------------ Ödeme Bilgisi ------------
+    bixolon.addText(
+      "Odenen Tutar  : ${tutar.toStringAsFixed(2)} TL",
+      fontType: 2,
+      bold: true,
+      align: 'L',
+    );
+    bixolon.drawLine();
+    bixolon.addFeed(30);
+
+    // ------------ Teşekkür Mesajı ------------
+    bixolon.addText(
+      "Odemenizi yaptiginiz icin",
+      fontType: 2,
+      bold: false,
+      align: 'C',
+    );
+    bixolon.addText("tesekkur ederiz.", fontType: 2, bold: false, align: 'C');
+    bixolon.addFeed(50);
+
+    // QR Code with tahakkuk UUID
+    if (tahakkukUuid != null && tahakkukUuid.isNotEmpty) {
+      bixolon.addQRCode(tahakkukUuid);
+      bixolon.addFeed(30);
     }
 
     // Yazdır
