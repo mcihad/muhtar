@@ -1279,7 +1279,6 @@ class _TahsilatFormScreenState extends ConsumerState<TahsilatFormScreen> {
                 return null;
               },
             ),
-            const Spacer(),
             const SizedBox(height: 24),
             // Action buttons
             Row(
