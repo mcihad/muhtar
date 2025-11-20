@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../db/app_database.dart';
 import '../../providers.dart';
+import '../../services/printer_service.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
   const ReportsScreen({super.key});
@@ -212,6 +213,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ['Ad', 'Abone No', 'Son Endeks'],
               'Son Endeks Raporu',
               _exportLastIndexReport(reportData),
+              onPrint: _printLastIndexReport(reportData),
             );
           },
         );
@@ -447,8 +449,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     List<Map<String, dynamic>> data,
     List<String> columns,
     String title,
-    Function() onShare,
-  ) {
+    Function() onShare, {
+    Function()? onPrint,
+  }) {
     if (data.isEmpty) {
       return Center(
         child: Column(
@@ -536,6 +539,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                     ),
                     child: Row(
                       children: [
+                        if (onPrint != null)
+                          IconButton(
+                            icon: const Icon(Icons.print, color: Colors.white),
+                            tooltip: 'Yazdır',
+                            onPressed: () => onPrint(),
+                          ),
                         IconButton(
                           icon: const Icon(Icons.share, color: Colors.white),
                           tooltip: 'Paylaş',
@@ -750,6 +759,87 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         buffer.writeln('${row['ad']} (${row['aboneNo']}): ${row['endeks']}');
       }
       _shareReport(buffer.toString(), 'son_endeks_raporu.txt');
+    };
+  }
+
+  Function() _printLastIndexReport(List<Map<String, dynamic>> data) {
+    return () async {
+      try {
+        final printerService = PrinterService();
+        if (!printerService.isConnected()) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Yazıcı bağlı değil'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        final db = ref.read(dbProvider);
+        final ayarlar = await db.getSettings();
+        if (ayarlar == null) {
+          throw Exception('Ayarlar yüklenemedi');
+        }
+
+        // Başlık ve tarih bilgisi
+        final buffer = StringBuffer();
+        buffer.writeln('${ayarlar.antetBaslik}');
+        buffer.writeln('${ayarlar.antetAdres}');
+        buffer.writeln('');
+        buffer.writeln('SON ENDEKS RAPORU');
+        buffer.writeln(
+          'Tarih: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now())}',
+        );
+        buffer.writeln('');
+
+        // Tablo başlığı
+        buffer.writeln('Abone  Ad Soyad                        Endeks');
+        buffer.writeln('---------------------------------------------');
+
+        // Endeks listesi - tablo formatında
+        for (var row in data) {
+          final aboneNo = (row['aboneNo'] as String).padRight(6);
+          final adSoyad = (row['ad'] as String);
+          final endeks = (row['endeks'] as double)
+              .toStringAsFixed(2)
+              .padLeft(10);
+
+          // Ad Soyad'ı 30 karaktere sığdır
+          final adSoyadFormatted = adSoyad.length > 30
+              ? '${adSoyad.substring(0, 27)}...'
+              : adSoyad.padRight(30);
+
+          buffer.writeln('$aboneNo$adSoyadFormatted$endeks');
+        }
+
+        buffer.writeln('');
+        buffer.writeln('Toplam Abone: ${data.length}');
+        buffer.writeln('');
+        buffer.writeln('${ayarlar.altBilgi}');
+
+        await printerService.printText(buffer.toString());
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Rapor yazdırılıyor...'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Yazdırma hatası: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     };
   }
 

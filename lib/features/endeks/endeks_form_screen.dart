@@ -246,8 +246,11 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: const Text('Sayaç Oku'),
+        backgroundColor: const Color(0xFF0F4C81),
+        elevation: 0,
         actions: [
           if (_isLoading)
             const Center(
@@ -264,7 +267,11 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
               ),
             )
           else
-            IconButton(icon: const Icon(Icons.check), onPressed: _save),
+            IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: _save,
+              tooltip: 'Kaydet',
+            ),
         ],
       ),
       body: Form(
@@ -273,23 +280,34 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             // Abone bilgi kartı
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F4C81), Color(0xFF1E5A8E)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F4C81).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 24,
-                      backgroundColor: const Color(0xFF0F4C81),
+                      radius: 28,
+                      backgroundColor: Colors.white.withOpacity(0.3),
                       child: Text(
                         widget.abone.ad[0].toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -304,13 +322,14 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
                           Text(
                             'Abone No: ${widget.abone.aboneNo}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: Colors.white.withOpacity(0.9),
                             ),
                           ),
                           if (widget.abone.saatNo != null)
@@ -318,7 +337,7 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
                               'Sayaç No: ${widget.abone.saatNo}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: Colors.white.withOpacity(0.9),
                               ),
                             ),
                         ],
@@ -332,246 +351,317 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
 
             // Son endeks bilgisi
             if (_lastEndeks != null)
-              Card(
-                elevation: 2,
-                color: Colors.blue.shade50,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Icon(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
                         Icons.history,
                         color: Colors.blue.shade700,
                         size: 32,
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Son Endeks',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${_lastEndeks!.endeks.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                          Text(
+                            DateFormat(
+                              'dd MMM yyyy',
+                            ).format(DateTime.parse(_lastEndeks!.tarih)),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
+
+            // Yeni endeks girişi kartı
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F4C81).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.speed,
+                          color: Color(0xFF0F4C81),
+                          size: 20,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Son Endeks',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue.shade700,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_lastEndeks!.endeks.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade900,
-                              ),
-                            ),
-                            Text(
-                              DateFormat(
-                                'dd MMM yyyy',
-                              ).format(DateTime.parse(_lastEndeks!.tarih)),
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          ],
+                      const Text(
+                        'Yeni Endeks Girişi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-            const SizedBox(height: 16),
-
-            // Yeni endeks girişi
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.speed, color: Color(0xFF0F4C81)),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Yeni Endeks Girişi',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                  const Divider(height: 24),
+                  TextFormField(
+                    controller: _endeksController,
+                    autofocus: true,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                    const Divider(height: 24),
-                    TextFormField(
-                      controller: _endeksController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'Sayaç İçi *',
+                      hintText: 'Sayaç değerini giriniz',
+                      prefixIcon: const Icon(Icons.water_drop),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
-                      decoration: InputDecoration(
-                        labelText: 'Sayaç İçi *',
-                        suffixText: '',
-                        hintText: 'Sayaç değerini giriniz',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF0F4C81),
+                          width: 2,
                         ),
-                        prefixIcon: const Icon(Icons.water_drop),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Endeks giriniz';
-                        }
-                        final endeks = double.tryParse(value);
-                        if (endeks == null) {
-                          return 'Geçerli sayı giriniz';
-                        }
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Endeks giriniz';
+                      }
+                      final endeks = double.tryParse(value);
+                      if (endeks == null) {
+                        return 'Geçerli sayı giriniz';
+                      }
 
-                        // Sayaç durumuna göre validasyon
-                        if (_lastEndeks != null) {
-                          final saatDurumu = widget.abone.saatDurumu;
+                      // Sayaç durumuna göre validasyon
+                      if (_lastEndeks != null) {
+                        final saatDurumu = widget.abone.saatDurumu;
 
-                          if (saatDurumu == 'ters') {
-                            // Ters sayaçta yeni endeks küçük olmalı
-                            if (endeks >= _lastEndeks!.endeks) {
-                              return 'Ters sayaçta yeni endeks son endeksten (${_lastEndeks!.endeks.toStringAsFixed(0)}) küçük olmalı';
-                            }
-                          } else {
-                            // Normal ve arızalı sayaçta yeni endeks büyük olmalı
-                            if (endeks < _lastEndeks!.endeks) {
-                              return 'Yeni endeks son endeksten (${_lastEndeks!.endeks.toStringAsFixed(0)}) küçük olamaz';
-                            }
+                        if (saatDurumu == 'ters') {
+                          // Ters sayaçta yeni endeks küçük olmalı
+                          if (endeks >= _lastEndeks!.endeks) {
+                            return 'Ters sayaçta yeni endeks son endeksten (${_lastEndeks!.endeks.toStringAsFixed(0)}) küçük olmalı';
+                          }
+                        } else {
+                          // Normal ve arızalı sayaçta yeni endeks büyük olmalı
+                          if (endeks < _lastEndeks!.endeks) {
+                            return 'Yeni endeks son endeksten (${_lastEndeks!.endeks.toStringAsFixed(0)}) küçük olamaz';
                           }
                         }
+                      }
 
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _aciklamaController,
-                      decoration: InputDecoration(
-                        labelText: 'Açıklama (Opsiyonel)',
-                        hintText: 'Ör: Normal okuma',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        prefixIcon: const Icon(Icons.note),
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _aciklamaController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      labelText: 'Açıklama (Opsiyonel)',
+                      hintText: 'Ör: Normal okuma',
+                      prefixIcon: const Icon(Icons.note),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
                       ),
-                      maxLines: 2,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Color(0xFF0F4C81),
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Tahakkuk oluştur
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            // Dönem seçimi kartı
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.receipt_long,
-                          color: Color(0xFF2E7D32),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Tahakkuk',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    const Text(
-                      'Tahakkuk oluşturmak için dönem seçiniz *',
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 12),
-                    InkWell(
-                      onTap: _showDonemPicker,
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
+                          color: const Color(0xFF2E7D32).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_month,
-                              color: Color(0xFF0F4C81),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Dönem',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
+                        child: const Icon(
+                          Icons.receipt_long,
+                          color: Color(0xFF2E7D32),
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Tahakkuk Dönemi',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  const Text(
+                    'Tahakkuk oluşturmak için dönem seçiniz *',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _showDonemPicker,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month,
+                            color: _selectedDonem != null
+                                ? const Color(0xFF0F4C81)
+                                : Colors.grey,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Dönem',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _selectedDonem?.ad ?? 'Dönem seçiniz',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: _selectedDonem != null
-                                          ? FontWeight.w500
-                                          : FontWeight.normal,
-                                      color: _selectedDonem != null
-                                          ? Colors.black
-                                          : Colors.grey,
-                                    ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _selectedDonem?.ad ?? 'Dönem seçiniz',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: _selectedDonem != null
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: _selectedDonem != null
+                                        ? Colors.black
+                                        : Colors.grey,
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            const Icon(Icons.arrow_forward_ios, size: 16),
-                          ],
+                          ),
+                          const Icon(Icons.arrow_forward_ios, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_availableDonemler.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Güncel tarihe uygun dönem bulunamadı',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade700,
                         ),
                       ),
                     ),
-                    if (_availableDonemler.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          'Güncel tarihe uygun dönem bulunamadı',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange.shade700,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
           ],
@@ -583,7 +673,7 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -595,9 +685,10 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
               backgroundColor: const Color(0xFF0F4C81),
+              disabledBackgroundColor: Colors.grey.shade300,
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -609,8 +700,12 @@ class _EndeksFormScreenState extends ConsumerState<EndeksFormScreen> {
                     ),
                   )
                 : const Text(
-                    'KAYDET',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'KAYDET VE TAHAKKUK OLUŞTUR',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
           ),
         ),

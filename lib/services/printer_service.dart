@@ -1,9 +1,31 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:bluetooth_classic/bluetooth_classic.dart';
-import 'package:bluetooth_classic/models/device.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 import 'bixolon_slcs.dart';
+
+class PrinterDevice {
+  final String name;
+  final String address;
+  final bool bonded;
+
+  const PrinterDevice({
+    required this.name,
+    required this.address,
+    this.bonded = true,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is PrinterDevice && other.address == address;
+  }
+
+  @override
+  int get hashCode => address.hashCode;
+}
 
 class PrinterService {
   // Singleton pattern
@@ -11,70 +33,136 @@ class PrinterService {
   factory PrinterService() => _instance;
   PrinterService._internal();
 
-  final _bluetoothClassicPlugin = BluetoothClassic();
-  Device? _connectedDevice;
-  int? _connectionId;
+  final FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
+  BluetoothConnection? _connection;
+  PrinterDevice? _connectedDevice;
+  bool _isConnecting = false;
 
   /// Eşleştirilmiş Bluetooth cihazlarını listele
-  Future<List<Device>> getDevices() async {
+  Future<List<PrinterDevice>> getDevices() async {
     try {
-      final devices = await _bluetoothClassicPlugin.getPairedDevices();
-      return devices;
+      await _ensurePermissions();
+      await _ensureBluetoothEnabled();
+      final bondedDevices = await _bluetooth.getBondedDevices();
+      return bondedDevices
+          .where((device) => device.address.isNotEmpty)
+          .map(
+            (device) => PrinterDevice(
+              name: device.name ?? 'Bilinmeyen Cihaz',
+              address: device.address,
+              bonded: true,
+            ),
+          )
+          .toList();
     } catch (e) {
       throw Exception('Cihazlar alınamadı: $e');
     }
   }
 
   /// Yazıcıya bağlan
-  Future<bool> connect(Device device) async {
+  Future<bool> connect(PrinterDevice device) async {
+    if (_isConnecting) {
+      return false;
+    }
+
+    if (isConnected() && _connectedDevice?.address == device.address) {
+      return true;
+    }
+
+    _isConnecting = true;
     try {
-      await _bluetoothClassicPlugin.initPermissions();
-      final status = await _bluetoothClassicPlugin.connect(
-        device.address,
-        "00001101-0000-1000-8000-00805f9b34fb", // SPP UUID
+      await _ensurePermissions();
+      await _ensureBluetoothEnabled();
+
+      await disconnect();
+      final connection = await BluetoothConnection.toAddress(device.address);
+      _connection = connection;
+      _connectedDevice = device;
+
+      // Dinleyici bağlantı koptuğunda state'i temizlesin
+      connection.input?.listen(
+        (_) {},
+        onDone: () {
+          _connectedDevice = null;
+          _connection = null;
+        },
       );
 
-      if (status == "true") {
-        _connectedDevice = device;
-        _connectionId = 1; // bluetooth_classic her bağlantı için id kullanır
-        return true;
-      }
-      return false;
+      return true;
     } catch (e) {
-      return false;
+      _connectedDevice = null;
+      _connection = null;
+      rethrow;
+    } finally {
+      _isConnecting = false;
     }
   }
 
   /// Yazıcı bağlantısını kes
   Future<void> disconnect() async {
     try {
-      if (_connectedDevice != null) {
-        await _bluetoothClassicPlugin.disconnect();
-      }
+      await _connection?.close();
+      _connection?.dispose();
+    } catch (_) {
+      // Ignore dispose errors
+    } finally {
+      _connection = null;
       _connectedDevice = null;
-      _connectionId = null;
-    } catch (e) {
-      // Ignore
     }
   }
 
   /// Bağlı mı kontrol et
   bool isConnected() {
-    return _connectedDevice != null && _connectionId != null;
+    return _connection?.isConnected ?? false;
   }
 
   /// Bağlı cihaz
-  Device? get connectedDevice => _connectedDevice;
+  PrinterDevice? get connectedDevice => _connectedDevice;
+
+  Future<void> _ensurePermissions() async {
+    if (!Platform.isAndroid) return;
+
+    final permissions = <Permission>[
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.bluetoothAdvertise,
+      Permission.location,
+      Permission.locationWhenInUse,
+    ];
+
+    final results = await permissions.request();
+    final denied = results.values.any(
+      (status) =>
+          status.isDenied || status.isPermanentlyDenied || status.isRestricted,
+    );
+
+    if (denied) {
+      throw Exception('Bluetooth izinleri verilmedi');
+    }
+  }
+
+  Future<void> _ensureBluetoothEnabled() async {
+    final state = await _bluetooth.state;
+    if (state == BluetoothState.STATE_OFF) {
+      final enabled = await _bluetooth.requestEnable();
+      if (enabled != true) {
+        throw Exception('Bluetooth açılamadı');
+      }
+    }
+  }
 
   /// Veri gönder
   Future<void> _sendData(Uint8List data) async {
-    if (!isConnected()) {
+    final connection = _connection;
+    if (connection == null || !connection.isConnected) {
       throw Exception('Yazıcı bağlı değil');
     }
 
     try {
-      await _bluetoothClassicPlugin.write(data.toString());
-      await Future.delayed(const Duration(milliseconds: 500));
+      connection.output.add(data);
+      await connection.output.allSent;
+      await Future.delayed(const Duration(milliseconds: 200));
     } catch (e) {
       throw Exception('Veri gönderilemedi: $e');
     }
@@ -270,6 +358,35 @@ class PrinterService {
     );
 
     bixolon.addFeed(5);
+
+    final bytes = bixolon.getBytes();
+    await _sendData(bytes);
+  }
+
+  // -----------------------------------------------------
+  //  GÉNÉRİK METNİ YAZDIR
+  // -----------------------------------------------------
+
+  Future<void> printText(String text) async {
+    if (!isConnected()) {
+      throw Exception("Yazıcı bağlı değil");
+    }
+
+    final bixolon = BixolonSlcsGenerator(pageWidthDots: 550);
+
+    // Split text into lines and print each
+    final lines = text.split('\n');
+    for (final line in lines) {
+      if (line.trim().isEmpty) {
+        bixolon.addFeed(5);
+      } else if (line.startsWith('===')) {
+        bixolon.addText(line, fontType: 2, bold: true, align: 'C');
+      } else {
+        bixolon.addText(line, fontType: 1, bold: false, align: 'L');
+      }
+    }
+
+    bixolon.addFeed(10);
 
     final bytes = bixolon.getBytes();
     await _sendData(bytes);

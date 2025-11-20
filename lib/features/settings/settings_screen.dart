@@ -5,7 +5,7 @@ import '../../db/app_database.dart';
 import '../../providers.dart';
 import '../../services/backup_service.dart';
 import '../../services/printer_service.dart';
-import 'package:bluetooth_classic/models/device.dart';
+import 'package:file_picker/file_picker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -95,6 +95,85 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _importBackup() async {
+    try {
+      // Dosya seçici ile yedek dosyasını seç
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        dialogTitle: 'Yedek dosyasını seçin',
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return; // Kullanıcı iptal etti
+      }
+
+      final filePath = result.files.single.path;
+      if (filePath == null) {
+        throw Exception('Dosya yolu alınamadı');
+      }
+
+      // Onay dialogu göster
+      if (!mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Dikkat!'),
+          content: Text(
+            'Seçilen dosya: ${result.files.single.name}\\n\\n'
+            'Yedekten geri yükleme yapılacak. Mevcut tüm veriler silinecek ve yedekteki verilerle değiştirilecek.\\n\\n'
+            'Devam etmek istediğinize emin misiniz?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('İptal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(c, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                'Geri Yükle',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed != true) return;
+
+      // Yedeklemeyi geri yükle
+      await _backupService.importDatabase(filePath);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Yedek başarıyla geri yüklendi. Uygulama yeniden başlatılıyor...',
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Kullanıcıyı login ekranına yönlendir
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          ref.read(authProvider.notifier).state = false;
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Yedek geri yükleme hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _scanPrinters() async {
     setState(() => _scanningPrinters = true);
 
@@ -117,7 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return;
       }
 
-      final selected = await showDialog<Device>(
+      final selected = await showDialog<PrinterDevice>(
         context: context,
         builder: (c) => AlertDialog(
           title: const Text('Yazıcı Seç'),
@@ -127,7 +206,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: devices
                   .map(
                     (d) => ListTile(
-                      title: Text(d.name ?? 'Bilinmeyen'),
+                      title: Text(d.name),
                       subtitle: Text(d.address),
                       onTap: () => Navigator.pop(c, d),
                     ),
@@ -146,7 +225,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           final db = ref.read(dbProvider);
           await db.updateSettings(
             AyarlarCompanion(
-              yaziciBluetoothAd: Value(selected.name ?? ''),
+              yaziciBluetoothAd: Value(selected.name),
               yaziciBluetoothMac: Value(selected.address),
             ),
           );
@@ -442,6 +521,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.restore),
+                        label: const Text('Yedeği Geri Yükle'),
+                        onPressed: _importBackup,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.teal,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: Colors.teal),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

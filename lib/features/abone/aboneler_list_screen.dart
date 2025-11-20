@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../providers.dart';
+import '../../services/printer_service.dart';
 import 'abone_form_screen.dart';
 import 'abone_detail_screen.dart';
 
@@ -10,11 +11,11 @@ final abonelerProvider = FutureProvider.autoDispose((ref) async {
   return db.getAboneler();
 });
 
-final aboneBorcProvider =
-    FutureProvider.autoDispose.family<Map<String, double>, int>((ref, aboneId) async {
-  final db = ref.read(dbProvider);
-  return db.getAboneBorcBilgileri(aboneId);
-});
+final aboneBorcProvider = FutureProvider.autoDispose
+    .family<Map<String, double>, int>((ref, aboneId) async {
+      final db = ref.read(dbProvider);
+      return db.getAboneBorcBilgileri(aboneId);
+    });
 
 class AbonelerListScreen extends ConsumerStatefulWidget {
   const AbonelerListScreen({super.key});
@@ -113,13 +114,19 @@ class _AbonelerListScreenState extends ConsumerState<AbonelerListScreen> {
                   );
                 }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filteredList.length,
-                  itemBuilder: (context, index) {
-                    final abone = filteredList[index];
-                    return _buildAboneCard(abone);
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(abonelerProvider);
+                    await Future.delayed(const Duration(milliseconds: 500));
                   },
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredList.length,
+                    itemBuilder: (context, index) {
+                      final abone = filteredList[index];
+                      return _buildAboneCard(abone);
+                    },
+                  ),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -213,7 +220,11 @@ class _AbonelerListScreenState extends ConsumerState<AbonelerListScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.badge, size: 14, color: Colors.grey.shade600),
+                        Icon(
+                          Icons.badge,
+                          size: 14,
+                          color: Colors.grey.shade600,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           abone.aboneNo,
@@ -224,7 +235,11 @@ class _AbonelerListScreenState extends ConsumerState<AbonelerListScreen> {
                         ),
                         if (abone.saatNo != null) ...[
                           const SizedBox(width: 12),
-                          Icon(Icons.speed, size: 14, color: Colors.grey.shade600),
+                          Icon(
+                            Icons.speed,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             abone.saatNo!,
@@ -272,19 +287,25 @@ class _AbonelerListScreenState extends ConsumerState<AbonelerListScreen> {
                   ],
                 ),
               ),
-              // Paylaş butonu (sadece borçlu olanlarda)
-              borcAsync.when(
-                data: (borc) {
-                  final kalan = borc['kalan'] ?? 0.0;
-                  if (kalan <= 0) return const SizedBox();
-                  
-                  return IconButton(
-                    icon: const Icon(Icons.share, color: Color(0xFF2196F3)),
-                    onPressed: () => _shareBorcBilgisi(abone, kalan),
-                  );
-                },
-                loading: () => const SizedBox(width: 40),
-                error: (_, __) => const SizedBox(width: 40),
+              // Action icons: Print and Share
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Print all abone info
+                  IconButton(
+                    icon: const Icon(Icons.print, size: 20),
+                    color: const Color(0xFF0F4C81),
+                    onPressed: () => _printAboneBilgileri(abone),
+                    tooltip: 'Bilgileri Yazdır',
+                  ),
+                  // Share all abone info
+                  IconButton(
+                    icon: const Icon(Icons.share, size: 20),
+                    color: const Color(0xFF2196F3),
+                    onPressed: () => _shareAboneBilgileri(abone),
+                    tooltip: 'Bilgileri Paylaş',
+                  ),
+                ],
               ),
             ],
           ),
@@ -293,18 +314,84 @@ class _AbonelerListScreenState extends ConsumerState<AbonelerListScreen> {
     );
   }
 
-  Future<void> _shareBorcBilgisi(abone, double borc) async {
+  Future<void> _printAboneBilgileri(abone) async {
     final db = ref.read(dbProvider);
     final ayarlar = await db.getSettings();
+    final borcBilgi = await db.getAboneBorcBilgileri(abone.id);
+    final kalan = borcBilgi['kalan'] ?? 0.0;
+
+    if (!mounted) return;
+
+    try {
+      final printerService = PrinterService();
+      if (!printerService.isConnected()) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Yazıcı bağlı değil')));
+        return;
+      }
+
+      // Create comprehensive info text
+      final info = StringBuffer();
+      info.writeln('=== ABONE BİLGİLERİ ===');
+      info.writeln('');
+      info.writeln(
+        'Ad: ${abone.ad}${abone.soyad != null ? ' ${abone.soyad}' : ''}',
+      );
+      info.writeln('Abone No: ${abone.aboneNo}');
+      if (abone.tel != null) info.writeln('Tel: ${abone.tel}');
+      if (abone.saatNo != null) info.writeln('Sayaç No: ${abone.saatNo}');
+      if (abone.adres != null) info.writeln('Adres: ${abone.adres}');
+      info.writeln('');
+      info.writeln('=== BORÇ DURUMU ===');
+      info.writeln(
+        'Toplam Borç: ${borcBilgi['toplam_borc']!.toStringAsFixed(2)} ₺',
+      );
+      info.writeln(
+        'Toplam Tahsilat: ${borcBilgi['toplam_tahsilat']!.toStringAsFixed(2)} ₺',
+      );
+      info.writeln('Kalan: ${kalan.toStringAsFixed(2)} ₺');
+      info.writeln('');
+      if (ayarlar?.altBilgi != null) {
+        info.writeln(ayarlar!.altBilgi);
+      }
+
+      await printerService.printText(info.toString());
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Bilgiler yazdırıldı')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      }
+    }
+  }
+
+  Future<void> _shareAboneBilgileri(abone) async {
+    final db = ref.read(dbProvider);
+    final ayarlar = await db.getSettings();
+    final borcBilgi = await db.getAboneBorcBilgileri(abone.id);
+    final kalan = borcBilgi['kalan'] ?? 0.0;
     final muhtarAdi = ayarlar?.muhtarAdi ?? '';
     final muhtarSoyadi = ayarlar?.muhtarSoyadi ?? '';
-    
-    final mesaj = '''
-Sayın ${abone.ad}${abone.soyad != null ? ' ${abone.soyad}' : ''},
 
-Köy muhtarlığımıza ${borc.toStringAsFixed(2)} ₺ borcunuz bulunmaktadır.
+    final mesaj =
+        '''
+=== ABONE BİLGİLERİ ===
 
-Borcunuzun en kısa sürede ödenmesini rica ederiz.
+Ad: ${abone.ad}${abone.soyad != null ? ' ${abone.soyad}' : ''}
+Abone No: ${abone.aboneNo}
+${abone.tel != null ? 'Tel: ${abone.tel}\n' : ''}${abone.saatNo != null ? 'Sayaç No: ${abone.saatNo}\n' : ''}${abone.adres != null ? 'Adres: ${abone.adres}\n' : ''}
+=== BORÇ DURUMU ===
+
+Toplam Borç: ${borcBilgi['toplam_borc']!.toStringAsFixed(2)} TL
+Toplam Tahsilat: ${borcBilgi['toplam_tahsilat']!.toStringAsFixed(2)} TL
+Kalan: ${kalan.toStringAsFixed(2)} TL
 
 Saygılarımızla,
 $muhtarAdi $muhtarSoyadi

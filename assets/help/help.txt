@@ -1,0 +1,214 @@
+=== MUHTAR SU TAKİP VE TAHSİLAT UYGULAMASI - KULLANIM KILAVUZU ===
+
+BAŞLANGIÇ AYARLARI
+==================
+1. Uygulama ilk defa açıldığında mutlaka "Ayarlar" bölümüne gidiniz.
+2. Aşağıdaki bilgileri eksiksiz giriniz:
+   - Muhtar adı ve soyadı
+   - Telefon numarası
+   - Su m³ birim fiyatı
+   - Antet başlığı (makbuzlarda görünecek)
+   - Alt bilgi metni
+   - Yazıcı ayarları (Bluetooth yazıcı varsa eşleştirin)
+   
+NOT: Bu ayarlar girilmeden uygulama düzgün çalışmayacaktır!
+
+
+DÖNEM YÖNETİMİ
+==============
+1. Ayarlardan sonra mutlaka bir dönem oluşturmalısınız.
+2. "Dönemler" menüsüne gidiniz ve "Yeni Dönem" butonuna tıklayınız.
+3. Dönem bilgilerini giriniz:
+   - Dönem adı (örn: "Ocak-Şubat 2025")
+   - Başlangıç tarihi
+   - Bitiş tarihi
+   - Son ödeme tarihi
+   
+ÖNEMLİ: Dönemler birbiriyle çakışmamalıdır! Aksi halde program hatalı çalışabilir.
+
+
+ABONE YÖNETİMİ
+==============
+Yeni Abone Ekleme:
+1. Ana sayfadan "Aboneler" butonuna tıklayınız.
+2. Sağ alttaki yeşil "+" butonuna basınız.
+3. Abone bilgilerini doldurunuz:
+   - Ad, soyad (zorunlu)
+   - Telefon
+   - Abone numarası (benzersiz olmalı)
+   - Sayaç numarası
+   - Sayaç durumu (normal/ters/arızalı)
+   - Adres
+   - İlk endeks değeri (önemli!)
+4. "Kaydet" butonuna basınız.
+
+Abone Bilgilerini Görüntüleme ve Düzenleme:
+1. Abone listesinden ilgili aboneye tıklayınız.
+2. Abone detay sayfasında tüm bilgileri görebilirsiniz.
+3. Sağ üstteki "Düzenle" ikonu ile bilgileri değiştirebilirsiniz.
+4. Borcu olmayan aboneleri silmek için AppBar'daki çöp kutusu ikonuna basınız.
+
+Abone Silme:
+- Sadece borcu OLMAYAN aboneler silinebilir!
+- Silme işlemi öncesi uyarı verilir ve onay istenir.
+- Tahakkuk ve tahsilat sayıları gösterilir.
+- Silme işlemi tüm abone kayıtlarını (endeksler, tahakkuklar, tahsilatlar) komple siler.
+
+
+SAYAÇ OKUMA VE ENDEKS GİRİŞİ
+============================
+1. Abone detay sayfasından "Sayaç Oku" butonuna tıklayınız.
+2. Yeni endeks değerini giriniz.
+3. İsterseniz sayaç fotoğrafı çekebilirsiniz.
+4. Açıklama ekleyebilirsiniz.
+5. "Kaydet ve Tahakkuk Oluştur" butonuna basınız.
+
+NOT: 
+- Sistem otomatik olarak önceki endeks değerini bulur.
+- Tüketim (m³) = Yeni endeks - Eski endeks
+- Tutar = Tüketim × Birim fiyat
+- Negatif okuma girişinde sistem uyarı verir.
+
+
+SAYAÇ DEĞİŞTİRME
+================
+Eğer abone sayacını değiştirecekse:
+1. Abone detay sayfasından "Sayaç Değiştir" butonuna tıklayınız.
+2. Eski sayacın son endeks değerini giriniz.
+3. Yeni sayacın numarasını ve başlangıç endeksini giriniz.
+4. "Kaydet" butonuna basınız.
+
+Sistem otomatik olarak:
+- Eski sayaç için son tüketimi hesaplar
+- Eğer tüketim varsa tahakkuk oluşturur
+- Eski sayacı arşivler
+- Yeni sayacı aktif hale getirir
+
+
+TAHSİLAT İŞLEMLERİ
+==================
+1. Abone detay sayfasından "Tahsilat" butonuna tıklayınız.
+2. VEYA tahakkuk listesinden ilgili tahakkuğa tıklayıp "Tahsilat Al" butonuna basınız.
+3. Tahsilat tutarını giriniz (kısmi ödeme yapılabilir).
+4. Ödeme tipini seçiniz (Nakit/Havale/Kredi Kartı).
+5. İsterseniz açıklama ekleyiniz.
+6. "Kaydet" butonuna basınız.
+
+Parçalı Tahsilat:
+- Bir tahakkukun ödemesi birden fazla tahsilat ile tamamlanabilir.
+- Sistem kalan bakiyeyi otomatik hesaplar.
+- Tam ödendiğinde tahakkuk durumu "Tamamlandı" olur.
+
+
+YAZDIR VE PAYLAŞ İŞLEMLERİ
+===========================
+Makbuz/İhbarname Yazdırma:
+- Tahakkuk listesinde veya abone detayında "Yazdır" ikonuna tıklayınız.
+- Eğer BORÇ VARSA → İhbarname yazdırılır
+- Eğer BORÇ YOKSA → Tahsil Bilgi Fişi yazdırılır
+- Bluetooth yazıcı bağlı olmalıdır (Ayarlar'dan kontrol edin).
+
+Bilgi Paylaşma:
+- Abone listesinde her abonenin yanında paylaşım ikonu vardır.
+- Paylaşım ikonu ile tüm abone bilgileri metin olarak paylaşılabilir.
+- Borç bilgileri de paylaşıma dahil edilir.
+
+QR Kod ile Ödeme:
+- Ana sayfadan "QR Oku" butonuna basınız.
+- Makbuz üzerindeki QR kodu taratınız.
+- Tahsilat tutarını giriniz ve "Tahsil Et" butonuna basınız.
+
+
+RAPORLAR
+========
+"Raporlar" menüsünden aşağıdaki raporlara erişebilirsiniz:
+
+1. Genel Durum Raporu
+   - Toplam abone sayısı
+   - Toplam borç/tahsilat
+   - Aylık özet
+
+2. Tahakkuk Raporu (Dönem Bazlı)
+   - Seçilen döneme ait tüm tahakkuklar
+   - Toplam tutar ve tüketim bilgileri
+
+3. Tahsilat Raporu
+   - Tarih aralığına göre tahsilat detayları
+   - Ödeme tipi bazlı gruplandırma
+
+4. Borçlu Aboneler Raporu
+   - Kalan borcu olan tüm aboneler
+   - Gecikme durumu
+
+5. Tüketim Raporu
+   - Abonelerin tüketim miktarları
+   - En yüksek tüketim sıralaması
+
+Tüm raporlar "Paylaş" butonu ile metin veya PDF formatında paylaşılabilir.
+
+
+YEDEKLEMe VE GERİ YÜKLEME
+==========================
+Veritabanı Yedeği Alma:
+1. "Ayarlar" menüsüne gidiniz.
+2. "Veritabanı Yedeği Al" butonuna tıklayınız.
+3. Sistem otomatik olarak yedeği oluşturur ve paylaşım ekranı açar.
+4. Yedeği e-posta, Google Drive vb. yerlere gönderebilirsiniz.
+
+Veritabanını Geri Yükleme:
+1. "Ayarlar" menüsüne gidiniz.
+2. "Yedeği Geri Yükle" butonuna tıklayınız.
+3. Daha önce aldığınız yedek dosyasını seçiniz.
+4. Onay verdiğinizde uygulama yeniden başlatılacaktır.
+
+ÖNEMLİ: Yedek alma işlemini düzenli olarak yapınız!
+
+
+YAZICI AYARLARI
+===============
+Bluetooth Yazıcı Eşleştirme:
+1. "Ayarlar" → "Yazıcı Ayarları" bölümüne gidiniz.
+2. "Yazıcı Ara" butonuna tıklayınız.
+3. Bulunan cihazlardan yazıcınızı seçiniz.
+4. Bağlantı kurulduğunda "Test Et" ile deneme çıktısı alınız.
+
+Otomatik Bağlanma:
+- Kayıtlı bir yazıcı varsa uygulama açılışında otomatik bağlanmaya çalışır.
+- Bağlantı durumu ekranın üst kısmında gösterilir.
+- Bağlantı koptuğunda tekrar bağlanmayı deneyebilirsiniz.
+
+
+SORU VE SORUNLAR
+================
+Sıkça Karşılaşılan Durumlar:
+
+1. "Abone silinemiyor" hatası:
+   → Abonenin borcu varsa silemezsiniz. Önce tüm borçları tahsil ediniz.
+
+2. Yazıcı bağlanmıyor:
+   → Bluetooth izninin verildiğinden emin olun.
+   → Yazıcının açık ve şarjlı olduğunu kontrol edin.
+   → Yazıcıyı Ayarlar'dan yeniden eşleştirmeyi deneyin.
+
+3. Endeks eksi çıkıyor:
+   → Sayaç geri mi döndü? Sayaç değişikliği yapmanız gerekebilir.
+   → Yanlış okuma yapıldıysa endeks kaydını siliniz (gelecek sürümde).
+
+4. Tahakkuk oluşturulmuyor:
+   → Dönem seçili mi kontrol edin (Ayarlar → Varsayılan Dönem).
+   → Birim fiyat girilmiş mi kontrol edin.
+
+5. Yedek geri yüklenmiyor:
+   → Dosya bozuk olabilir, farklı bir yedek deneyin.
+   → Dosya uzantısının .db olduğundan emin olun.
+
+
+DESTEK VE İLETİŞİM
+==================
+Bu uygulama Sivas Belediyesi Akıllı Şehir ve Kent Bilgi Sistemleri Müdürlüğü 
+tarafından geliştirilmiştir.
+
+Sorun ve önerileriniz için belediye ile iletişime geçiniz.
+
+
+=== BAŞARILAR DİLERİZ ===

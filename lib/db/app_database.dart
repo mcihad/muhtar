@@ -270,6 +270,51 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateAbone(int id, AbonelerCompanion companion) =>
       (update(aboneler)..where((t) => t.id.equals(id))).write(companion);
 
+  Future<Map<String, int>> getAboneDeletionInfo(int aboneId) async {
+    final tahakkukList = await getTahakkukByAbone(aboneId);
+    int tahsilatCount = 0;
+    for (final tahakkuk in tahakkukList) {
+      final tahsilatlar = await getTahsilatByTahakkuk(tahakkuk.id);
+      tahsilatCount += tahsilatlar.length;
+    }
+    return {
+      'tahakkuk_count': tahakkukList.length,
+      'tahsilat_count': tahsilatCount,
+    };
+  }
+
+  Future<void> deleteAbone(int aboneId) async {
+    // Check for debt
+    final borcBilgi = await getAboneBorcBilgileri(aboneId);
+    if (borcBilgi['kalan']! > 0) {
+      throw Exception('Bu abonenin borcu var, silinemez!');
+    }
+
+    await transaction(() async {
+      // Get all tahakkuklar for this abone
+      final tahakkukList = await getTahakkukByAbone(aboneId);
+
+      // Delete all tahsilatlar for each tahakkuk
+      for (final tahakkuk in tahakkukList) {
+        await (delete(
+          tahsilatlar,
+        )..where((t) => t.tahakkukId.equals(tahakkuk.id))).go();
+      }
+
+      // Delete all tahakkuklar
+      await (delete(tahakkuklar)..where((t) => t.aboneId.equals(aboneId))).go();
+
+      // Delete all endeksler
+      await (delete(endeksler)..where((t) => t.aboneId.equals(aboneId))).go();
+
+      // Delete all sayaclar
+      await (delete(sayaclar)..where((t) => t.aboneId.equals(aboneId))).go();
+
+      // Finally delete abone
+      await (delete(aboneler)..where((t) => t.id.equals(aboneId))).go();
+    });
+  }
+
   // Donem methods
   Future<List<DonemlerData>> getDonemler() => select(donemler).get();
 

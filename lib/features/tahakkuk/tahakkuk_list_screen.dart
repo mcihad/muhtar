@@ -134,26 +134,43 @@ class _TahakkukListScreenState extends ConsumerState<TahakkukListScreen> {
         return;
       }
 
-      await printerService.printMakbuz(
-        antetBaslik: settings.antetBaslik ?? 'MUHTAR',
-        antetAdres: settings.antetAdres ?? '',
-        altBilgi: settings.altBilgi ?? 'Tesekkur ederiz',
-        aboneAd: '${abone.ad} ${abone.soyad ?? ''}',
-        aboneNo: abone.aboneNo,
-        donem: donem.ad,
-        ilkEndeks: tahakkuk.ilkEndeks ?? 0.0,
-        sonEndeks: tahakkuk.sonEndeks ?? 0.0,
-        tuketim: tahakkuk.tuketimM3 ?? 0.0,
-        birimFiyat: tahakkuk.birimFiyat,
-        tutar: tahakkuk.tutar,
-        odenen: odenen,
-        kalan: kalan,
-        tarih: DateFormat('dd.MM.yyyy').format(DateTime.now()),
-      );
-
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Makbuz yazdırıldı')),
-      );
+      // Conditional printing: ihbarname if debt, makbuz if no debt
+      if (kalan > 0) {
+        // Print ihbarname (warning notice)
+        await printerService.printIhbarname(
+          antetBaslik: settings.antetBaslik ?? 'MUHTAR',
+          antetAdres: settings.antetAdres ?? '',
+          aboneAd: '${abone.ad} ${abone.soyad ?? ''}',
+          aboneNo: abone.aboneNo,
+          donem: donem.ad,
+          kalan: kalan,
+          sonOdemeTarihi: donem.sonOdemeTarihi ?? '',
+        );
+        messenger.showSnackBar(
+          const SnackBar(content: Text('İhbarname yazdırıldı')),
+        );
+      } else {
+        // Print makbuz (receipt)
+        await printerService.printMakbuz(
+          antetBaslik: settings.antetBaslik ?? 'MUHTAR',
+          antetAdres: settings.antetAdres ?? '',
+          altBilgi: settings.altBilgi ?? 'Teşekkür ederiz',
+          aboneAd: '${abone.ad} ${abone.soyad ?? ''}',
+          aboneNo: abone.aboneNo,
+          donem: donem.ad,
+          ilkEndeks: tahakkuk.ilkEndeks ?? 0.0,
+          sonEndeks: tahakkuk.sonEndeks ?? 0.0,
+          tuketim: tahakkuk.tuketimM3 ?? 0.0,
+          birimFiyat: tahakkuk.birimFiyat,
+          tutar: tahakkuk.tutar,
+          odenen: odenen,
+          kalan: kalan,
+          tarih: DateFormat('dd.MM.yyyy').format(DateTime.now()),
+        );
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Tahsil fişi yazdırıldı')),
+        );
+      }
     } catch (e) {
       debugPrintStack(label: 'Yazdırma hatası: $e');
       messenger.showSnackBar(SnackBar(content: Text('Yazıcı hatası: $e')));

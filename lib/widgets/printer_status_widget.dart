@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bluetooth_classic/models/device.dart';
 import '../services/printer_service.dart';
 
 // Yazıcı bağlantı durumu provider'ı
@@ -92,9 +91,9 @@ class PrinterConnectionSheet extends ConsumerStatefulWidget {
 class _PrinterConnectionSheetState
     extends ConsumerState<PrinterConnectionSheet> {
   final PrinterService _printerService = PrinterService();
-  List<Device> _devices = [];
+  List<PrinterDevice> _devices = [];
   bool _isLoading = false;
-  Device? _selectedDevice;
+  PrinterDevice? _selectedDevice;
 
   @override
   void initState() {
@@ -125,7 +124,7 @@ class _PrinterConnectionSheetState
     }
   }
 
-  Future<void> _connectToDevice(Device device) async {
+  Future<void> _connectToDevice(PrinterDevice device) async {
     setState(() {
       _selectedDevice = device;
     });
@@ -204,240 +203,273 @@ class _PrinterConnectionSheetState
 
     return DraggableScrollableSheet(
       expand: false,
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      builder: (context, scrollController) => Column(
-        children: [
-          // Handle bar
-          Container(
-            padding: const EdgeInsets.only(top: 12),
-            child: Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.8,
+      builder: (context, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              padding: const EdgeInsets.only(top: 12, bottom: 8),
+              child: Center(
+                child: Container(
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
             ),
-          ),
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.bluetooth,
-                  color: isConnected ? Colors.green : Colors.grey,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Yazıcı Bağlantısı',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        isConnected ? 'Yazıcı bağlı' : 'Yazıcı bağlı değil',
-                        style: TextStyle(
-                          color: isConnected
-                              ? Colors.green.shade600
-                              : Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isConnected)
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    color: Colors.red,
-                    onPressed: _disconnect,
-                    tooltip: 'Bağlantıyı Kes',
-                  ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          // Content
-          Expanded(
-            child: ListView(
-              controller: scrollController,
-              padding: const EdgeInsets.all(16),
-              children: [
-                // Status card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isConnected
-                        ? Colors.green.shade50
-                        : Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
                       color: isConnected
-                          ? Colors.green.shade200
-                          : Colors.blue.shade200,
+                          ? Colors.green.shade50
+                          : Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
+                      color: isConnected
+                          ? Colors.green.shade600
+                          : Colors.blue.shade600,
+                      size: 24,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isConnected ? Icons.check_circle : Icons.info_outline,
-                        color: isConnected
-                            ? Colors.green.shade700
-                            : Colors.blue.shade700,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          isConnected
-                              ? 'Yazıcı bağlı, yazdırma için hazır'
-                              : 'Aşağıdan yazıcı seçerek bağlayın',
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Yazıcı Bağlantısı',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade800,
+                          ),
+                        ),
+                        Text(
+                          isConnected ? 'Bağlı' : 'Bağlı değil',
                           style: TextStyle(
                             color: isConnected
-                                ? Colors.green.shade700
-                                : Colors.blue.shade700,
-                            fontWeight: FontWeight.w500,
+                                ? Colors.green.shade600
+                                : Colors.grey.shade500,
+                            fontSize: 14,
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Devices section header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Eşleştirilmiş Yazıcılar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (!_isLoading)
-                      IconButton(
-                        icon: const Icon(Icons.refresh),
-                        onPressed: _loadDevices,
-                        tooltip: 'Yenile',
-                      ),
-                  ],
-                ),
-                // Devices list
-                if (_isLoading)
-                  const Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: CircularProgressIndicator(),
-                  )
-                else if (_devices.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.bluetooth_disabled,
-                          size: 48,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Eşleştirilmiş yazıcı bulunamadı',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Bluetooth ayarlarından yazıcıyı eşleştirdikten sonra burada görünecek',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 12,
-                          ),
-                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _devices.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final device = _devices[index];
+                  ),
+                  if (isConnected)
+                    IconButton(
+                      icon: const Icon(Icons.power_off, size: 20),
+                      color: Colors.red.shade400,
+                      onPressed: _disconnect,
+                      tooltip: 'Bağlantıyı Kes',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Content
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  // Status indicator
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isConnected
+                          ? Colors.green.shade50
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isConnected
+                            ? Colors.green.shade200
+                            : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isConnected ? Icons.check_circle : Icons.info,
+                          color: isConnected
+                              ? Colors.green.shade600
+                              : Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            isConnected ? 'Yazıcı hazır' : 'Yazıcı seçin',
+                            style: TextStyle(
+                              color: isConnected
+                                  ? Colors.green.shade700
+                                  : Colors.grey.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Devices section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Eşleştirilmiş Yazıcılar',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      if (!_isLoading)
+                        IconButton(
+                          icon: const Icon(Icons.refresh, size: 20),
+                          onPressed: _loadDevices,
+                          tooltip: 'Yenile',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Devices list
+                  if (_isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  else if (_devices.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.bluetooth_disabled,
+                            size: 32,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Yazıcı bulunamadı',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ..._devices.map((device) {
                       final isConnecting = _selectedDevice == device;
-
-                      return Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 8,
                           ),
-                          leading: Icon(
-                            Icons.print,
-                            color: Colors.grey.shade600,
+                          leading: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.print,
+                              color: Colors.grey.shade600,
+                              size: 18,
+                            ),
                           ),
                           title: Text(
-                            device.name ?? 'Bilinmeyen Cihaz',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            device.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                            ),
                           ),
                           subtitle: Text(
                             device.address,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: Colors.grey.shade500,
+                              fontFamily: 'monospace',
                             ),
                           ),
                           trailing: isConnecting
                               ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
+                                  width: 20,
+                                  height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : ElevatedButton(
-                                  onPressed: _selectedDevice != null
-                                      ? null
-                                      : () => _connectToDevice(device),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0F4C81),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 8,
+                              : SizedBox(
+                                  width: 80,
+                                  height: 32,
+                                  child: ElevatedButton(
+                                    onPressed: _selectedDevice != null
+                                        ? null
+                                        : () => _connectToDevice(device),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0F4C81),
+                                      padding: EdgeInsets.zero,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Bağlan',
+                                      style: TextStyle(fontSize: 12),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Bağlan',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
                                 ),
+                          dense: true,
                         ),
                       );
-                    },
-                  ),
-              ],
+                    }),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

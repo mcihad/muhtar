@@ -20,6 +20,21 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
   final _yeniSaatNoController = TextEditingController();
   final _yeniEndeksController = TextEditingController();
   bool _isLoading = false;
+  EndekslerData? _lastEndeks;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLastEndeks();
+  }
+
+  Future<void> _loadLastEndeks() async {
+    final db = ref.read(dbProvider);
+    final lastEndeks = await db.getLastEndeks(widget.abone.id);
+    setState(() {
+      _lastEndeks = lastEndeks;
+    });
+  }
 
   @override
   void dispose() {
@@ -318,9 +333,33 @@ class _SayacDegistirScreenState extends ConsumerState<SayacDegistirScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Son endeks giriniz';
                   }
-                  if (double.tryParse(value) == null) {
+                  final eskiSonEndeks = double.tryParse(value);
+                  if (eskiSonEndeks == null) {
                     return 'Geçerli sayı giriniz';
                   }
+
+                  // Önceki endeks kontrolü
+                  if (_lastEndeks != null) {
+                    final saatDurumu = widget.abone.saatDurumu;
+
+                    if (saatDurumu == 'ters') {
+                      // Ters sayaçta: eski sayacın son endeksi önceki endeksten küçük olmalı
+                      if (eskiSonEndeks >= _lastEndeks!.endeks) {
+                        return 'Ters sayaçta son endeks önceki endeksten (${_lastEndeks!.endeks.toStringAsFixed(0)}) küçük olmalı';
+                      }
+                    } else {
+                      // Normal ve arızalı sayaçta: eski sayacın son endeksi önceki endeksten büyük olmalı
+                      if (eskiSonEndeks < _lastEndeks!.endeks) {
+                        return 'Son endeks önceki endeksten (${_lastEndeks!.endeks.toStringAsFixed(0)}) küçük olamaz';
+                      }
+                    }
+
+                    // Sayacın içi aynı olamaz
+                    if (eskiSonEndeks == _lastEndeks!.endeks) {
+                      return 'Sayacın içi aynı olamaz (${_lastEndeks!.endeks.toStringAsFixed(0)})';
+                    }
+                  }
+
                   return null;
                 },
               ),
